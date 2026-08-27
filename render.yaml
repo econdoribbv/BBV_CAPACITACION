@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: conecta-y-participa-bbv
+    runtime: node
+    plan: starter
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: CJUSTINIANO_PASSWORD
+        sync: false
+      - key: DPINTO_PASSWORD
+        sync: false
+    disk:
+      name: feria-data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1
