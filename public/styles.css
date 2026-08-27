@@ -64,7 +64,7 @@ img { max-width: 100%; }
 }
 .brand { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; font-weight: 850; letter-spacing: -.03em; }
 .bbv-logo { width: 185px; height: 48px; object-fit: contain; object-position: left center; }
-.bbv-logo-light { filter: brightness(0) invert(1); }
+.bbv-logo-light { filter: none; background: white; padding: 5px 8px; border-radius: 9px; }
 .brand-title { padding-left: 13px; border-left: 1px solid rgba(101,67,136,.2); font-size: 15px; white-space: nowrap; }
 .sidebar .brand-title, .projector .brand-title, .wheel-page .brand-title { border-color: rgba(255,255,255,.22); }
 .brand-mark { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 14px; color: white; background: linear-gradient(135deg, var(--green), var(--purple)); box-shadow: 0 8px 20px rgba(54,188,135,.25); font-weight: 900; }

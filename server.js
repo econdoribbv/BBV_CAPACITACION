@@ -149,7 +149,8 @@ function scoreBoard() {
 const staffPasswords = {
   admin: process.env.ADMIN_PASSWORD || 'AdminFeria2026!',
   cjustiniano: process.env.CJUSTINIANO_PASSWORD || 'Cjustiniano2026!',
-  dpinto: process.env.DPINTO_PASSWORD || 'Dpinto2026!'
+  dpinto: process.env.DPINTO_PASSWORD || 'Dpinto2026!',
+  avega: process.env.AVEGA_PASSWORD || 'BBVAvega2026!'
 };
 const staffHashes = Object.fromEntries(Object.entries(staffPasswords).map(([user, pass]) => [user, bcrypt.hashSync(pass, 10)]));
 
@@ -541,7 +542,7 @@ app.use((error, _req, res, _next) => {
 
 app.listen(PORT, () => {
   console.log(`Conecta y Participa disponible en http://localhost:${PORT}`);
-  if (IS_PRODUCTION && (!process.env.ADMIN_PASSWORD || !process.env.CJUSTINIANO_PASSWORD || !process.env.DPINTO_PASSWORD)) {
-    console.warn('AVISO: configura las tres contraseñas en las variables de entorno de Render.');
+  if (IS_PRODUCTION && (!process.env.ADMIN_PASSWORD || !process.env.CJUSTINIANO_PASSWORD || !process.env.DPINTO_PASSWORD || !process.env.AVEGA_PASSWORD)) {
+    console.warn('AVISO: configura las cuatro contraseñas en las variables de entorno de Render.');
   }
 });

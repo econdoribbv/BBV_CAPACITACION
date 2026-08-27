@@ -33,6 +33,7 @@ Para una prueba local inmediata, las credenciales iniciales son:
 | `admin` | `AdminFeria2026!` |
 | `cjustiniano` | `Cjustiniano2026!` |
 | `dpinto` | `Dpinto2026!` |
+| `avega` | `BBVAvega2026!` |
 
 Estas contraseñas son solo para revisión local. En Render se deben configurar obligatoriamente como variables privadas.
 
@@ -44,10 +45,11 @@ Estas contraseñas son solo para revisión local. En Render se deben configurar 
    - `ADMIN_PASSWORD`
    - `CJUSTINIANO_PASSWORD`
    - `DPINTO_PASSWORD`
+   - `AVEGA_PASSWORD`
 4. Render crea automáticamente `SESSION_SECRET` y un disco persistente de 1 GB.
 5. Una vez desplegado, vuelve al panel, revisa el QR y descárgalo para proyectarlo o imprimirlo.
 
-El Blueprint usa el plan `starter` porque Render requiere un servicio con disco persistente para conservar registros y premios después de reinicios. Si se elimina el disco del archivo `render.yaml`, la app puede desplegarse en un plan sin disco, pero los registros se perderán cuando Render reinicie el servicio.
+El Blueprint está configurado para utilizar el plan gratuito de Render.
 
 ## Operación durante la feria
 

@@ -2,7 +2,7 @@ services:
   - type: web
     name: conecta-y-participa-bbv
     runtime: node
-    plan: starter
+    plan: free
     buildCommand: npm ci
     startCommand: npm start
     healthCheckPath: /api/health
@@ -17,7 +17,5 @@ services:
         sync: false
       - key: DPINTO_PASSWORD
         sync: false
-    disk:
-      name: feria-data
-      mountPath: /opt/render/project/src/data
-      sizeGB: 1
+      - key: AVEGA_PASSWORD
+        sync: false
