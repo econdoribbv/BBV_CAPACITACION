@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#241A31">
+  <title>Panel de control | Conecta & Participa</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="admin-layout">
+    <aside class="sidebar">
+      <a class="brand" href="/admin.html"><img class="bbv-logo bbv-logo-light" src="/bbv-logo.svg" alt="BBV Bolsa Boliviana de Valores"><span class="brand-title">Conecta & Participa</span></a>
+      <nav class="nav" aria-label="Navegación principal">
+        <a href="#resumen" class="active" data-section="resumen"><span class="nav-icon">⌂</span><span>Resumen</span></a>
+        <a href="#participantes" data-section="participantes"><span class="nav-icon">♙</span><span>Participantes</span></a>
+        <a href="#juego" data-section="juego"><span class="nav-icon">▶</span><span>Cuestionario</span></a>
+        <a href="#preguntas" data-section="preguntas"><span class="nav-icon">?</span><span>Preguntas</span></a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-chip"><span class="avatar" id="avatar">A</span><span><small>Sesión activa</small><strong id="staffUser">—</strong></span></div>
+        <button class="btn btn-ghost btn-sm" id="logoutButton" type="button" style="width:100%;color:#d8cfe0;border-color:rgba(255,255,255,.15)">Cerrar sesión</button>
+      </div>
+    </aside>
+
+    <main class="admin-main">
+      <header class="admin-header">
+        <div><span class="eyebrow">Control del evento</span><h1 id="pageTitle">Resumen</h1><p id="pageSubtitle">Todo lo que está pasando en la feria.</p></div>
+        <div class="header-actions"><a class="btn btn-light btn-sm" href="/qr.html" target="_blank">▣ Proyectar QR</a><a class="btn btn-green btn-sm" href="/projector.html" target="_blank">▶ Proyectar preguntas</a></div>
+      </header>
+
+      <section class="admin-section active" id="section-resumen">
+        <div class="stat-grid">
+          <article class="stat-card"><span class="stat-icon">♙</span><small>Participantes</small><strong id="statAttendees">0</strong></article>
+          <article class="stat-card"><span class="stat-icon">?</span><small>Preguntas</small><strong id="statQuestions">0</strong></article>
+          <article class="stat-card"><span class="stat-icon">✦</span><small>Premios entregados</small><strong id="statPrizes">0</strong></article>
+          <article class="stat-card"><span class="stat-icon">◎</span><small>Premios disponibles</small><strong id="statRemaining">0</strong></article>
+        </div>
+        <div class="grid-2">
+          <article class="panel">
+            <div class="panel-header"><div><h2>Registro por QR</h2><p>Proyecta o imprime este código.</p></div></div>
+            <div class="qr-wrap"><img id="qrImage" alt="Código QR de registro"><div><h3>Escanea y regístrate</h3><p style="color:var(--muted);font-size:13px;line-height:1.55">Al escanear, los estudiantes completarán sus datos e ingresarán directamente al cuestionario.</p><div class="qr-url" id="qrUrl">Cargando…</div><button class="btn btn-light btn-sm" id="downloadQr" type="button">Descargar QR</button></div></div>
+          </article>
+          <article class="panel">
+            <div class="panel-header"><div><h2>Sala del cuestionario</h2><p>Código visible para los participantes.</p></div><span class="status-pill" id="gameStatus">Sala</span></div>
+            <div class="game-code-display"><small>Código de sala</small><strong id="dashboardCode">------</strong></div>
+            <div class="control-row"><button class="btn btn-green btn-sm" data-game-action="start">Iniciar juego</button><button class="btn btn-light btn-sm" data-game-action="new-code">Nuevo código</button><a class="btn btn-ghost btn-sm" href="/projector.html" target="_blank">Proyectar</a></div>
+          </article>
+        </div>
+        <div class="grid-2">
+          <article class="panel"><div class="panel-header"><div><h2>Últimos registros</h2><p>Participantes recién conectados.</p></div><a href="#participantes" class="btn btn-light btn-sm" data-go="participantes">Ver todos</a></div><div id="recentAttendees"></div></article>
+          <article class="panel"><div class="panel-header"><div><h2>Clasificación</h2><p>Puntaje actual del cuestionario.</p></div></div><div class="leader-list" id="summaryLeaders"></div></article>
+        </div>
+      </section>
+
+      <section class="admin-section" id="section-participantes">
+        <article class="panel">
+          <div class="panel-header"><div><h2>Personas registradas</h2><p>Consulta y exporta la base de asistentes.</p></div><div style="display:flex;gap:9px"><input class="search" id="participantSearch" placeholder="Buscar nombre o correo"><a class="btn btn-green btn-sm" href="/api/admin/export.csv">↓ Exportar CSV</a></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Nombre</th><th>Correo</th><th>Género</th><th>Edad</th><th>Premio</th><th>Registro</th></tr></thead><tbody id="attendeeTable"></tbody></table></div>
+        </article>
+      </section>
+
+      <section class="admin-section" id="section-juego">
+        <div class="grid-2" style="margin-top:0">
+          <article class="panel">
+            <div class="panel-header"><div><h2>Control del juego</h2><p>Los cambios aparecen en todas las pantallas.</p></div><span class="status-pill" id="controlStatus">Sala</span></div>
+            <div class="game-code-display"><small>Código de sala</small><strong id="controlCode">------</strong></div>
+            <div class="control-row">
+              <button class="btn btn-green" data-game-action="start">▶ Iniciar desde la primera</button>
+              <button class="btn btn-orange" data-game-action="reveal">✓ Mostrar respuesta</button>
+              <button class="btn" data-game-action="next">Siguiente →</button>
+              <button class="btn btn-light" data-game-action="finish">Finalizar</button>
+              <button class="btn btn-ghost" data-game-action="lobby">Volver a sala</button>
+            </div>
+          </article>
+          <article class="panel">
+            <div class="panel-header"><div><h2>Pregunta activa</h2><p id="questionProgress">Ninguna pregunta activa.</p></div><strong id="answerCount">0 respuestas</strong></div>
+            <div id="activeQuestion"><div class="empty">Inicia el juego para ver la pregunta y las respuestas en tiempo real.</div></div>
+          </article>
+        </div>
+        <article class="panel" style="margin-top:18px"><div class="panel-header"><div><h2>Tabla de posiciones</h2><p>La puntuación premia respuestas correctas y rapidez.</p></div><a class="btn btn-light btn-sm" href="/projector.html" target="_blank">Abrir proyección</a></div><div class="leader-list" id="fullLeaders"></div></article>
+      </section>
+
+      <section class="admin-section" id="section-preguntas">
+        <article class="panel">
+          <div class="panel-header"><div><h2>Preguntas y opciones de respuesta</h2><p>Cada pregunta tiene cuatro opciones. Marca cuál es la correcta.</p></div><button class="btn btn-light btn-sm" id="addQuestion" type="button">+ Agregar pregunta</button></div>
+          <div class="question-editor" id="questionEditor"></div>
+          <div class="form-actions" style="justify-content:flex-end"><button class="btn btn-green" id="saveQuestions" type="button">Guardar cuestionario</button></div>
+        </article>
+      </section>
+    </main>
+  </div>
+  <div class="toast"></div>
+  <script type="module" src="/admin.js"></script>
+</body>
+</html>

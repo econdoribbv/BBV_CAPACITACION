@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#36BC87">
+  <title>Conecta & Participa | BBV</title>
+  <meta name="description" content="Regístrate y participa en el desafío de la feria.">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="bg-orbs">
+  <header class="topbar">
+    <a class="brand" href="/"><img class="bbv-logo" src="/bbv-logo.svg" alt="BBV Bolsa Boliviana de Valores"><span class="brand-title">Conecta & Participa</span></a>
+  </header>
+
+  <main class="shell hero">
+    <section class="hero-copy">
+      <span class="eyebrow">Experiencia interactiva</span>
+      <h1>Conecta, responde y <span>gana.</span></h1>
+      <p class="lead">Regístrate para participar en nuestro desafío en vivo, aprender y tener la oportunidad de llevarte un premio.</p>
+      <div class="hero-pills">
+        <span class="hero-pill"><span class="dot"></span><b id="registeredCount">0</b> registrados</span>
+        <span class="hero-pill"><span class="dot purple"></span>Preguntas en vivo</span>
+        <span class="hero-pill"><span class="dot orange"></span>Premios reales</span>
+      </div>
+    </section>
+
+    <section class="card form-card" aria-live="polite">
+      <div id="registerView">
+        <h2>Regístrate para participar</h2>
+        <p>Completa todos tus datos para ingresar directamente al desafío.</p>
+        <form id="registerForm">
+          <div class="form-grid">
+            <div class="field full">
+              <label for="name">Nombre completo</label>
+              <input id="name" name="name" autocomplete="name" maxlength="80" placeholder="Ej. Andrea Pérez" required>
+            </div>
+            <div class="field full">
+              <label for="email">Correo electrónico</label>
+              <input id="email" name="email" type="email" autocomplete="email" maxlength="120" placeholder="nombre@correo.com" required>
+            </div>
+            <div class="field">
+              <label for="gender">Género</label>
+              <select id="gender" name="gender" required>
+                <option value="">Selecciona</option>
+                <option>Femenino</option>
+                <option>Masculino</option>
+                <option>Otro</option>
+                <option>Prefiero no decir</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="ageRange">Rango de edad</label>
+              <select id="ageRange" name="ageRange" required>
+                <option value="">Selecciona</option>
+                <option value="18-23">18–23 años</option>
+                <option value="24-28">24–28 años</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-actions"><button class="btn btn-green btn-lg" type="submit">Registrarme y entrar →</button></div>
+          <p class="form-note"><span>🔒</span><span>Tus datos se utilizarán únicamente para el registro y seguimiento de esta actividad.</span></p>
+        </form>
+      </div>
+
+    </section>
+  </main>
+  <div class="toast"></div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

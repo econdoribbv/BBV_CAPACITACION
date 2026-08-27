@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#21172D">
+  <title>Registro por QR | Conecta & Participa</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="qr-page">
+  <main class="qr-stage">
+    <header class="qr-stage-header">
+      <img class="bbv-logo bbv-logo-light" src="/bbv-logo.svg" alt="BBV Bolsa Boliviana de Valores">
+      <span class="projector-chip" id="qrRegistered">0 registrados</span>
+    </header>
+    <section class="qr-projector-card">
+      <div class="qr-projector-copy">
+        <span class="eyebrow">Conecta & Participa</span>
+        <h1>Escanea para participar</h1>
+        <p>Completa tus datos y entrarás automáticamente al cuestionario.</p>
+        <div class="qr-projector-url" id="qrProjectorUrl">Cargando dirección…</div>
+      </div>
+      <div class="qr-projector-image"><img id="qrProjectorImage" alt="Código QR para registrarse"><span>Apunta la cámara de tu celular</span></div>
+    </section>
+  </main>
+  <script type="module" src="/qr.js"></script>
+</body>
+</html>
