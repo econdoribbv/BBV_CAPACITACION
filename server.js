@@ -217,7 +217,7 @@ app.post('/api/register', (req, res) => {
   const gender = cleanText(req.body.gender, 30);
   const ageRange = cleanText(req.body.ageRange, 10);
   const allowedGenders = ['Femenino', 'Masculino', 'Otro', 'Prefiero no decir'];
-  const allowedAges = ['18-23', '24-28'];
+  const allowedAges = ['18-25', '26-36', '37-50'];
 
   const nameParts = name.split(' ').filter(Boolean);
   if (name.length < 5 || nameParts.length < 2 || !/^[\p{L}][\p{L}\s'.-]+$/u.test(name)) {
