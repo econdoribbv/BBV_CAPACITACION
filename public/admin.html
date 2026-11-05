@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#241A31">
   <title>Panel de control | Conecta & Participa</title>
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/styles.css?v=20261105"><link rel="stylesheet" href="/experience.css?v=20261105">
 </head>
 <body>
   <div class="admin-layout">
@@ -29,6 +29,7 @@
         <div class="header-actions"><a class="btn btn-light btn-sm" href="/qr.html" target="_blank">▣ Proyectar QR</a><a class="btn btn-green btn-sm" href="/projector.html" target="_blank">▶ Proyectar preguntas</a><a class="btn btn-orange btn-sm" href="/wheel.html" target="_blank">✦ Abrir ruleta</a></div>
       </header>
 
+      <div id="storageNotice" class="storage-notice" role="status"></div>
       <section class="admin-section active" id="section-resumen">
         <div class="stat-grid">
           <article class="stat-card"><span class="stat-icon">♙</span><small>Participantes</small><strong id="statAttendees">0</strong></article>
@@ -55,7 +56,7 @@
 
       <section class="admin-section" id="section-participantes">
         <article class="panel">
-          <div class="panel-header"><div><h2>Personas registradas</h2><p>Consulta y exporta la base de asistentes.</p></div><div style="display:flex;gap:9px"><input class="search" id="participantSearch" placeholder="Buscar nombre o correo"><a class="btn btn-green btn-sm" href="/api/admin/export.csv">↓ Exportar CSV</a></div></div>
+          <div class="panel-header report-header"><div><h2>Personas registradas</h2><p>Descarga todos los registros, incluso si aplicaste una búsqueda.</p></div><div class="report-actions"><input class="search" id="participantSearch" aria-label="Buscar nombre o correo" placeholder="Buscar nombre o correo"><button type="button" class="btn btn-green btn-sm" id="exportCsv">↓ Descargar informe CSV</button><button type="button" class="btn btn-light btn-sm" id="exportBackup">↓ Respaldo completo</button></div></div>
           <div class="table-wrap"><table><thead><tr><th>Nombre</th><th>Correo</th><th>Género</th><th>Edad</th><th>Premio</th><th>Registro</th></tr></thead><tbody id="attendeeTable"></tbody></table></div>
         </article>
       </section>
@@ -91,6 +92,6 @@
     </main>
   </div>
   <div class="toast"></div>
-  <script type="module" src="/admin.js"></script>
+  <script type="module" src="/admin.js?v=20261105"></script>
 </body>
 </html>

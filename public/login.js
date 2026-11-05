@@ -1,4 +1,4 @@
-import { api, toast } from './common.js';
+import { api, toast } from './common.js?v=20261105';
 
 document.querySelector('#loginForm').addEventListener('submit', async (event) => {
   event.preventDefault();
@@ -9,7 +9,7 @@ document.querySelector('#loginForm').addEventListener('submit', async (event) =>
     const form = new FormData(event.currentTarget);
     await api('/api/auth/login', { method: 'POST', body: Object.fromEntries(form) });
     const requested = new URLSearchParams(location.search).get('next');
-    const allowed = ['/qr.html', '/admin.html', '/projector.html'];
+    const allowed = ['/qr.html', '/admin.html', '/admin.html#participantes', '/projector.html'];
     location.href = allowed.includes(requested) ? requested : '/admin.html';
   } catch (error) {
     toast(error.message, 'error');

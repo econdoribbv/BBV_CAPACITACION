@@ -1,4 +1,4 @@
-import { api, toast, escapeHtml } from './common.js';
+import { api, toast, escapeHtml } from './common.js?v=20261105';
 
 const canvas = document.querySelector('#wheelCanvas');
 const ctx = canvas.getContext('2d');
@@ -6,6 +6,10 @@ const imageCache = new Map();
 let state;
 let rotation = 0;
 let spinning = false;
+const bullRig = document.querySelector('#bullRig');
+const bullMessage = document.querySelector('#bullMessage');
+const bullButton = document.querySelector('#bullButton');
+const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches || document.body.classList.contains('motion-paused');
 
 const segmentIds = ['pen', 'mini-notebook', 'pen', 'phone-holder', 'pen', 'ruler', 'pen', 'mini-notebook', 'pen', 'notebook-pen', 'pen', 'phone-holder'];
 
@@ -42,9 +46,11 @@ async function drawWheel() {
       const imageSize = 94;
       ctx.save(); ctx.translate(radius * .63, 0); ctx.rotate(Math.PI / 2); ctx.drawImage(image, -imageSize / 2, -imageSize / 2, imageSize, imageSize); ctx.restore();
     }
-    ctx.fillStyle = 'white'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '800 23px Inter, sans-serif';
+    ctx.fillStyle = 'white'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '700 21px Inter, sans-serif';
     const label = prize.name === 'Libreta con bolígrafo' ? 'Libreta + boli' : prize.name;
-    ctx.save(); ctx.translate(radius * .34, 0); ctx.rotate(Math.PI / 2); ctx.fillText(label, 0, 0, 170); ctx.restore();
+    ctx.save(); ctx.translate(radius * .39, 0);
+    if (Math.cos(start + arc / 2) < 0) ctx.rotate(Math.PI);
+    ctx.fillText(label, 0, 0, 145); ctx.restore();
     ctx.restore();
   }
 
@@ -59,6 +65,9 @@ function render(data) {
   const selected = select.value;
   select.innerHTML = `<option value="">Selecciona un participante (${eligible.length})</option>${eligible.map((person) => `<option value="${person.id}">${escapeHtml(person.name)}</option>`).join('')}`;
   if (eligible.some((person) => person.id === selected)) select.value = selected;
+  const unavailable = !eligible.length || !data.prizes.some((prize) => prize.remaining > 0);
+  document.querySelector('#spinButton').disabled = spinning || unavailable;
+  bullButton.disabled = spinning || unavailable;
   document.querySelector('#inventory').innerHTML = data.prizes.map((prize) => `<div class="inventory-item"><img src="${prize.image}" alt=""><span><strong>${escapeHtml(prize.name)}</strong><small>${prize.initial - prize.remaining} entregados de ${prize.initial}</small></span><span class="inventory-count">${prize.remaining}</span></div>`).join('');
   document.querySelector('#recentSpins').innerHTML = data.spins.length ? data.spins.slice(0, 4).map((spin, index) => `<div style="display:flex;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.06);font-size:12px"><span><b>${escapeHtml(spin.attendeeName)}</b><br><span style="color:#b9acc5">${escapeHtml(spin.prizeName)}</span></span>${index === 0 ? `<button class="btn btn-ghost btn-sm undo-spin" style="color:#d8cfe0;border-color:rgba(255,255,255,.16);min-height:32px" data-spin="${spin.id}">Anular</button>` : ''}</div>`).join('') : '<p style="color:#b9acc5;font-size:12px">Todavía no se entregaron premios.</p>';
   document.querySelectorAll('.undo-spin').forEach((button) => button.addEventListener('click', undoSpin));
@@ -80,7 +89,7 @@ function animateToPrize(prizeId) {
     const delta = (desired - current + 360) % 360;
     const start = rotation;
     const target = rotation + 6 * 360 + delta;
-    const duration = 5200;
+    const duration = reduceMotion() ? 120 : 5200;
     const started = performance.now();
     const ease = (t) => 1 - Math.pow(1 - t, 4);
     function frame(now) {
@@ -95,6 +104,7 @@ function animateToPrize(prizeId) {
 }
 
 function confetti() {
+  if (reduceMotion()) return;
   const colors = ['#36BC87', '#654388', '#F7941E', '#59C8E1', '#EF99C1'];
   for (let index = 0; index < 70; index += 1) {
     const piece = document.createElement('i');
@@ -115,19 +125,48 @@ document.querySelector('#spinButton').addEventListener('click', async () => {
   spinning = true;
   const button = document.querySelector('#spinButton');
   button.disabled = true;
-  button.textContent = 'La ruleta está girando…';
+  bullButton.disabled = true;
+  document.querySelector('#attendeeSelect').disabled = true;
+  button.textContent = 'El torito prepara el giro…';
   try {
     const result = await api('/api/admin/wheel/spin', { method: 'POST', body: { attendeeId } });
+    bullRig.classList.remove('is-celebrating');
+    bullRig.classList.add('is-winding');
+    bullMessage.textContent = '¡Un poquito de impulso…!';
+    if (!reduceMotion()) await new Promise((resolve) => setTimeout(resolve, 650));
+    bullRig.classList.remove('is-winding');
+    bullRig.classList.add('is-spinning');
+    bullMessage.textContent = '¡Vamos, vamos! ¿Qué premio será?';
+    button.textContent = 'La ruleta está girando…';
     await animateToPrize(result.prize.id);
+    bullRig.classList.remove('is-spinning');
+    bullRig.classList.add('is-celebrating');
+    bullMessage.textContent = `¡Premio listo: ${result.prize.name}!`;
     document.querySelector('#winnerImage').src = result.prize.image;
     document.querySelector('#winnerPerson').textContent = result.attendee.name;
     document.querySelector('#winnerPrize').textContent = result.prize.name;
     document.querySelector('#winnerModal').classList.add('show');
+    document.querySelector('#winnerModal').inert = false;
+    document.querySelector('#winnerModal').setAttribute('aria-hidden', 'false');
+    document.querySelector('#closeWinner').focus();
     confetti();
     await refresh();
-  } catch (error) { toast(error.message, 'error'); }
-  finally { spinning = false; button.disabled = false; button.textContent = '✦ Girar la ruleta'; }
+  } catch (error) {
+    toast(error.message, 'error');
+    bullMessage.textContent = 'Revisa los últimos ganadores antes de repetir el giro.';
+    await refresh();
+  }
+  finally {
+    spinning = false;
+    bullRig.classList.remove('is-winding', 'is-spinning');
+    document.querySelector('#attendeeSelect').disabled = false;
+    const unavailable = !state?.attendees.some((person) => !person.prizeId) || !state?.prizes.some((prize) => prize.remaining > 0);
+    button.disabled = unavailable;
+    bullButton.disabled = unavailable;
+    button.textContent = '✦ ¡Que gire el torito!';
+  }
 });
+ bullButton.addEventListener('click', () => document.querySelector('#spinButton').click());
 
 async function undoSpin(event) {
   if (!confirm('¿Anular esta entrega y devolver el premio al inventario?')) return;
@@ -135,8 +174,20 @@ async function undoSpin(event) {
   catch (error) { toast(error.message, 'error'); }
 }
 
-document.querySelector('#closeWinner').addEventListener('click', () => document.querySelector('#winnerModal').classList.remove('show'));
+function closeWinner() {
+  const modal = document.querySelector('#winnerModal');
+  modal.classList.remove('show');
+  modal.inert = true;
+  modal.setAttribute('aria-hidden', 'true');
+  document.querySelector('#spinButton').focus();
+}
+document.querySelector('#closeWinner').addEventListener('click', closeWinner);
+document.querySelector('#winnerModal').addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') closeWinner();
+  if (event.key === 'Tab') { event.preventDefault(); document.querySelector('#closeWinner').focus(); }
+});
 document.querySelector('#fullscreenButton').addEventListener('click', async () => { if (!document.fullscreenElement) await document.documentElement.requestFullscreen(); else await document.exitFullscreen(); });
 document.querySelector('#wheelLogout').addEventListener('click', async () => { await api('/api/auth/logout', { method: 'POST' }); location.href = '/ruleta.html'; });
 
 refresh();
+setInterval(() => { if (!spinning && !document.hidden && !document.querySelector('#winnerModal').classList.contains('show')) refresh(); }, 5000);

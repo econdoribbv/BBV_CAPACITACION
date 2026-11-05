@@ -7,13 +7,15 @@ Aplicación web para registrar estudiantes mediante QR, ejecutar un cuestionario
 - Registro con nombre, correo, género y rango de edad (18–23 o 24–28).
 - Ingreso automático al cuestionario después de completar un registro válido.
 - QR de registro generado con la URL pública configurada.
-- Tres accesos de organizador: `admin`, `cjustiniano` y `dpinto`.
+- Cuatro accesos de organizador: `admin`, `cjustiniano`, `dpinto` y `avega`.
 - Cuestionario en vivo con sala, proyección, respuestas móviles, rapidez, resultados y clasificación.
 - Editor de preguntas desde el panel.
 - Ruleta completamente separada, con acceso propio, imágenes, ganador registrado e inventario automático.
 - Selección ponderada por existencias: al inicio, un bolígrafo tiene 150/280 de probabilidad; las probabilidades se ajustan automáticamente al inventario restante.
-- Exportación de participantes a CSV.
-- Persistencia en `data/store.json` (la carpeta se monta como disco persistente en Render).
+- Exportación de participantes a CSV y respaldo completo en JSON, con manejo de sesión vencida.
+- Guardado atómico con copia anterior; nunca sustituye archivos dañados por una base vacía.
+- Persistencia local en `data/store.json`; en Render requiere disco montado en `/var/data`.
+- Fondo animado en perspectiva, controles para pausar el movimiento y torito animado en la ruleta.
 
 ## Ejecutar localmente
 
@@ -39,17 +41,11 @@ Estas contraseñas son solo para revisión local. En Render se deben configurar 
 
 ## Publicar en GitHub y Render
 
-1. Sube todo el proyecto a un repositorio privado o público de GitHub.
-2. En Render elige **New → Blueprint** y conecta el repositorio. Render detectará `render.yaml`.
-3. Completa las variables solicitadas:
-   - `ADMIN_PASSWORD`
-   - `CJUSTINIANO_PASSWORD`
-   - `DPINTO_PASSWORD`
-   - `AVEGA_PASSWORD`
-4. Render crea automáticamente `SESSION_SECRET` y un disco persistente de 1 GB.
-5. Una vez desplegado, vuelve al panel, revisa el QR y descárgalo para proyectarlo o imprimirlo.
+Sigue [DEPLOY_RENDER.md](DEPLOY_RENDER.md) para actualizar el servicio existente.
 
-El Blueprint está configurado para utilizar el plan gratuito de Render.
+**Un deploy de código no crea el disco.** Configura un servicio de pago compatible con discos, monta 1 GB en `/var/data` y establece `DATA_DIR=/var/data`. El propietario debe revisar y aceptar los costos en Render. Conserva `SESSION_SECRET`, `ADMIN_PASSWORD`, `CJUSTINIANO_PASSWORD`, `DPINTO_PASSWORD` y `AVEGA_PASSWORD` como variables privadas.
+
+Sin un disco montado realmente, Render puede mostrar la web y exportar datos existentes, pero los nuevos registros y cambios quedan bloqueados para evitar otra pérdida. El aviso del panel confirma cuándo está activo el almacenamiento persistente.
 
 ## Operación durante la feria
 
@@ -62,4 +58,4 @@ El Blueprint está configurado para utilizar el plan gratuito de Render.
 
 ## Copia de seguridad
 
-El archivo persistente es `data/store.json`. Además, desde **Participantes → Exportar CSV** se puede descargar la base de asistentes durante el evento.
+En Render el archivo activo es `/var/data/store.json`; `store.json.bak` conserva la versión anterior. Desde **Participantes** descarga el CSV y el respaldo JSON completo después de cada evento. No subas estos archivos a GitHub. Consulta el procedimiento de recuperación en [DEPLOY_RENDER.md](DEPLOY_RENDER.md).

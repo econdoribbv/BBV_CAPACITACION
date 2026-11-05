@@ -1,4 +1,4 @@
-import { api, escapeHtml } from './common.js';
+import { api, escapeHtml } from './common.js?v=20261105';
 
 const stage = document.querySelector('#projectorStage');
 let signature = '';

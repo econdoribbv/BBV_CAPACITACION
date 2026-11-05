@@ -2,11 +2,15 @@ services:
   - type: web
     name: conecta-y-participa-bbv
     runtime: node
-    plan: free
+    # Existing services keep their current plan. A paid instance + disk is required
+    # for registrations; see DEPLOY_RENDER.md before deploying.
+    autoDeployTrigger: off
     buildCommand: npm ci
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
+      - key: DATA_DIR
+        value: /var/data
       - key: NODE_ENV
         value: production
       - key: SESSION_SECRET

@@ -1,4 +1,4 @@
-import { api, toast, escapeHtml } from './common.js';
+import { api, toast, escapeHtml } from './common.js?v=20261105';
 
 const card = document.querySelector('#gameCard');
 let lastQuestion = null;

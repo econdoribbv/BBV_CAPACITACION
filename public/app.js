@@ -1,9 +1,13 @@
-import { api, toast } from './common.js';
+import { api, toast } from './common.js?v=20261105';
 
 async function loadPublic() {
   try {
     const data = await api('/api/public');
     document.querySelector('#registeredCount').textContent = data.registered;
+    if (data.registrationOpen === false) {
+      document.querySelector('#registerForm button[type="submit"]').disabled = true;
+      document.querySelector('#registrationStatus').textContent = 'El registro se habilitará en breve. Consulta al equipo organizador.';
+    }
     if (data.participant) location.href = '/participant.html';
   } catch {}
 }

@@ -6,14 +6,12 @@ const helmet = require('helmet');
 const bcrypt = require('bcryptjs');
 const QRCode = require('qrcode');
 const crypto = require('crypto');
-const fs = require('fs');
 const path = require('path');
+const { openStorage } = require('./storage');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 const ROOT = __dirname;
-const DATA_DIR = path.join(ROOT, 'data');
-const DATA_FILE = path.join(DATA_DIR, 'store.json');
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 const DEFAULT_QUESTIONS = [
@@ -93,20 +91,13 @@ function normalizeStore(value) {
   };
 }
 
-fs.mkdirSync(DATA_DIR, { recursive: true });
-let store;
-try {
-  store = normalizeStore(JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')));
-} catch {
-  store = freshStore();
-}
+const storage = openStorage({ root: ROOT, freshStore, normalizeStore });
+let store = storage.initial;
 
 function saveStore() {
-  const temp = `${DATA_FILE}.tmp`;
-  fs.writeFileSync(temp, JSON.stringify(store, null, 2));
-  fs.renameSync(temp, DATA_FILE);
+  try { storage.save(store); }
+  catch (error) { store = storage.rollback(); throw error; }
 }
-saveStore();
 
 function makeDigits(length) {
   let result = '';
@@ -158,6 +149,13 @@ app.set('trust proxy', 1);
 app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: false, limit: '100kb' }));
+app.use('/api', (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store');
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method) && !req.path.startsWith('/auth/') && !storage.status.writable) {
+    return res.status(503).json({ error: 'El registro está temporalmente cerrado: el equipo debe habilitar el almacenamiento seguro.' });
+  }
+  next();
+});
 app.use(session({
   name: 'feria.sid',
   secret: process.env.SESSION_SECRET || 'solo-desarrollo-cambiar-antes-de-publicar-2026',
@@ -170,7 +168,7 @@ app.use((req, res, next) => {
   const staffPages = ['/admin', '/admin.html', '/projector', '/projector.html', '/qr', '/qr.html', '/wheel', '/wheel.html'];
   if (staffPages.includes(req.path) && !req.session.staffUser) {
     if (req.path === '/wheel' || req.path === '/wheel.html') return res.redirect('/ruleta.html');
-    return res.redirect('/login.html?next=%2Fqr.html');
+    return res.redirect(`/login.html?next=${encodeURIComponent(req.path.endsWith('.html') ? req.path : `${req.path}.html`)}`);
   }
   if (req.path === '/participant' || req.path === '/participant.html') {
     const participant = store.attendees.find((item) => item.id === req.session.participantId);
@@ -205,6 +203,7 @@ app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
 app.get('/api/public', (req, res) => {
   res.json({
+    registrationOpen: storage.status.writable,
     gameStatus: store.game.status,
     registered: store.attendees.length,
     participant: publicAttendee(store.attendees.find((person) => person.id === req.session.participantId))
@@ -336,6 +335,7 @@ app.get('/api/admin/state', requireStaff, (req, res) => {
   const currentAnswers = store.game.answers.filter((answer) => answer.questionIndex === store.game.currentQuestionIndex);
   res.json({
     user: req.session.staffUser,
+    storage: storage.status,
     attendees: store.attendees.map(publicAttendee).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
     questions: store.questions,
     prizes: store.prizes,
@@ -523,15 +523,24 @@ app.post('/api/admin/wheel/undo', requireStaff, (req, res) => {
 });
 
 app.get('/api/admin/export.csv', requireStaff, (_req, res) => {
-  const escape = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+  const escape = (value) => {
+    let text = String(value ?? '');
+    if (/^[\s]*[=+@-]/.test(text)) text = `'${text}`;
+    return `"${text.replace(/"/g, '""')}"`;
+  };
   const rows = [['Nombre', 'Correo', 'Género', 'Edad', 'Premio', 'Fecha']];
   for (const person of store.attendees) {
     rows.push([person.name, person.email, person.gender, person.ageRange, store.prizes.find((prize) => prize.id === person.prizeId)?.name || '', person.createdAt]);
   }
   const csv = `\uFEFF${rows.map((row) => row.map(escape).join(',')).join('\r\n')}`;
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-  res.setHeader('Content-Disposition', 'attachment; filename="participantes-feria.csv"');
+  res.setHeader('Content-Disposition', `attachment; filename="participantes-bbv-${new Date().toISOString().slice(0, 10)}.csv"`);
   res.send(csv);
+});
+
+app.get('/api/admin/backup.json', requireStaff, (_req, res) => {
+  res.setHeader('Content-Disposition', `attachment; filename="respaldo-bbv-${new Date().toISOString().slice(0, 10)}.json"`);
+  res.type('application/json').send(JSON.stringify(store, null, 2));
 });
 
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Ruta no encontrada.' }));

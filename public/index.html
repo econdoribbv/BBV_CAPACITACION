@@ -6,16 +6,16 @@
   <meta name="theme-color" content="#36BC87">
   <title>Conecta & Participa | BBV</title>
   <meta name="description" content="Regístrate y participa en el desafío de la feria.">
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/styles.css?v=20261105"><link rel="stylesheet" href="/experience.css?v=20261105">
 </head>
-<body class="bg-orbs">
+<body class="experience-page landing-page">
   <header class="topbar">
-    <a class="brand" href="/"><img class="bbv-logo" src="/bbv-logo.svg" alt="BBV Bolsa Boliviana de Valores"><span class="brand-title">Conecta & Participa</span></a>
+    <a class="brand" href="/"><img class="bbv-logo bbv-logo-light" src="/bbv-logo.svg" alt="BBV Bolsa Boliviana de Valores"><span class="brand-title">Conecta & Participa</span></a>
   </header>
 
   <main class="shell hero">
     <section class="hero-copy">
-      <span class="eyebrow">Experiencia interactiva</span>
+      <span class="eyebrow">Bolsa Boliviana de Valores · En vivo</span>
       <h1>Conecta, responde y <span>gana.</span></h1>
       <p class="lead">Regístrate para participar en nuestro desafío en vivo, aprender y tener la oportunidad de llevarte un premio.</p>
       <div class="hero-pills">
@@ -23,10 +23,12 @@
         <span class="hero-pill"><span class="dot purple"></span>Preguntas en vivo</span>
         <span class="hero-pill"><span class="dot orange"></span>Premios reales</span>
       </div>
+      <div class="hero-companion"><div data-bull></div><p><strong>Tu próxima gran idea empieza aquí.</strong>Aprende, participa y deja que nuestro torito ponga la suerte en movimiento.</p></div>
     </section>
 
     <section class="card form-card" aria-live="polite">
       <div id="registerView">
+        <span class="form-kicker">01 / TU PRIMER PASO</span>
         <h2>Regístrate para participar</h2>
         <p>Completa todos tus datos para ingresar directamente al desafío.</p>
         <form id="registerForm">
@@ -62,11 +64,12 @@
           <div class="form-actions"><button class="btn btn-green btn-lg" type="submit">Registrarme y entrar →</button></div>
           <p class="form-note"><span>🔒</span><span>Tus datos se utilizarán únicamente para el registro y seguimiento de esta actividad.</span></p>
         </form>
+        <p class="registration-status" id="registrationStatus" role="status"></p>
       </div>
 
     </section>
   </main>
   <div class="toast"></div>
-  <script type="module" src="/app.js"></script>
-</body>
+  <script type="module" src="/app.js?v=20261105"></script>
+<script type="module" src="/experience.js?v=20261105"></script></body>
 </html>

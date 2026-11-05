@@ -35,3 +35,24 @@ export function escapeHtml(value) {
 export function formatDate(value) {
   return new Intl.DateTimeFormat('es-BO', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value));
 }
+
+export async function downloadReport(url, filename, expectedType) {
+  const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store' });
+  if (response.status === 401) {
+    location.href = '/login.html?next=%2Fadmin.html%23participantes';
+    throw new Error('Tu sesión venció. Ingresa de nuevo para descargar el informe.');
+  }
+  if (!response.ok) throw new Error('No se pudo descargar el informe. Intenta nuevamente.');
+  if (!(response.headers.get('content-type') || '').includes(expectedType)) {
+    throw new Error('El servidor no devolvió un informe válido. Intenta nuevamente.');
+  }
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = objectUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+}

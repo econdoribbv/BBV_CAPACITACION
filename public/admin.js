@@ -1,4 +1,4 @@
-import { api, toast, escapeHtml, formatDate } from './common.js';
+import { api, toast, escapeHtml, formatDate, downloadReport } from './common.js?v=20261105';
 
 let state;
 let localQuestions = [];
@@ -70,6 +70,11 @@ function readQuestionEditor() {
 
 function render(data) {
   state = data;
+  const notice = document.querySelector('#storageNotice');
+  notice.classList.toggle('storage-warning', !data.storage?.writable);
+  notice.textContent = !data.storage?.writable
+    ? 'Registro cerrado. Configura un disco persistente en /var/data y DATA_DIR=/var/data en Render. Si el disco ya existe, revisa sus permisos y espacio disponible. Puedes descargar los registros actuales.'
+    : data.storage.persistent ? 'Almacenamiento persistente activo · Descarga un respaldo al finalizar cada evento.' : 'Modo local · Los registros se guardan en este equipo.';
   document.querySelector('#staffUser').textContent = data.user;
   document.querySelector('#avatar').textContent = data.user[0];
   document.querySelector('#statAttendees').textContent = data.attendees.length;
@@ -81,7 +86,7 @@ function render(data) {
   document.querySelector('#gameStatus').textContent = statusNames[data.game.status] || data.game.status;
   document.querySelector('#controlStatus').textContent = statusNames[data.game.status] || data.game.status;
   document.querySelector('#recentAttendees').innerHTML = `<div class="table-wrap"><table><tbody>${attendeeRows(data.attendees.slice(0, 5))}</tbody></table></div>`;
-  document.querySelector('#attendeeTable').innerHTML = attendeeRows(data.attendees);
+  renderFilteredAttendees();
   document.querySelector('#summaryLeaders').innerHTML = leaderList(data.game.leaderboard, 5);
   document.querySelector('#fullLeaders').innerHTML = leaderList(data.game.leaderboard);
   document.querySelector('#answerCount').textContent = `${data.game.answerCount} respuesta${data.game.answerCount === 1 ? '' : 's'}`;
@@ -131,11 +136,28 @@ document.querySelectorAll('[data-game-action]').forEach((button) => button.addEv
   finally { button.disabled = false; }
 }));
 
-document.querySelector('#participantSearch').addEventListener('input', (event) => {
-  const term = event.target.value.toLowerCase().trim();
+function renderFilteredAttendees() {
+  if (!state) return;
+  const term = document.querySelector('#participantSearch').value.toLowerCase().trim();
   const filtered = state.attendees.filter((person) => `${person.name} ${person.email}`.toLowerCase().includes(term));
   document.querySelector('#attendeeTable').innerHTML = attendeeRows(filtered);
-});
+}
+document.querySelector('#participantSearch').addEventListener('input', renderFilteredAttendees);
+
+for (const [id, endpoint, prefix, extension, type] of [
+  ['exportCsv', '/api/admin/export.csv', 'participantes', 'csv', 'text/csv'],
+  ['exportBackup', '/api/admin/backup.json', 'respaldo', 'json', 'application/json']
+]) {
+  document.getElementById(id).addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    try {
+      await downloadReport(endpoint, `${prefix}-bbv-${new Date().toISOString().slice(0, 10)}.${extension}`, type);
+      toast('Descarga iniciada. Revisa las descargas del navegador.', 'success');
+    } catch (error) { toast(error.message, 'error'); }
+    finally { button.disabled = false; }
+  });
+}
 
 document.querySelector('#addQuestion').addEventListener('click', () => {
   localQuestions = readQuestionEditor();
