@@ -14,12 +14,14 @@ El Blueprint no agrega un disco ni cambia de plan automáticamente: esa contrata
 
 ## Accesos
 
-Usa la **URL pública `.onrender.com`** que muestra el servicio (no `dashboard.render.com`):
+URL pública comprobada del proyecto: **https://conecta-y-participa-bbv.onrender.com**.
 
-- Participantes: `/` o `/?registro=1`
-- Administración: `/login.html` (panel: `/admin.html`)
-- Ruleta con torito: `/ruleta.html` (ruleta autenticada: `/wheel.html`)
-- QR: `/qr.html`
+- [Participantes](https://conecta-y-participa-bbv.onrender.com/?registro=1)
+- [Administración](https://conecta-y-participa-bbv.onrender.com/login.html) (panel: `/admin.html`)
+- [Ruleta con MAX](https://conecta-y-participa-bbv.onrender.com/ruleta.html) (ruleta autenticada: `/wheel.html`)
+- [QR](https://conecta-y-participa-bbv.onrender.com/qr.html)
+
+Las claves de `.env.example` son valores locales predeterminados. En el servicio desplegado, las variables de entorno de Render tienen prioridad. Si una clave predeterminada es rechazada, el propietario debe revisar o restablecer la variable correspondiente en Environment; modificar `.env.example` no cambia la contraseña de producción.
 
 ## Respaldo y recuperación
 

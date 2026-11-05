@@ -15,7 +15,7 @@ Aplicación web para registrar estudiantes mediante QR, ejecutar un cuestionario
 - Exportación de participantes a CSV y respaldo completo en JSON, con manejo de sesión vencida.
 - Guardado atómico con copia anterior; nunca sustituye archivos dañados por una base vacía.
 - Persistencia local en `data/store.json`; en Render requiere disco montado en `/var/data`.
-- Fondo animado en perspectiva, controles para pausar el movimiento y torito animado en la ruleta.
+- Fondo animado en perspectiva, controles para pausar el movimiento y MAX, el toro animado original de Aula Bursátil, en la ruleta.
 
 ## Ejecutar localmente
 

@@ -20,7 +20,7 @@
 .motion-toggle:focus-visible, .bull-action:focus-visible { outline: 3px solid #8df2cc; outline-offset: 5px; }
 .topbar .motion-toggle, .wheel-top-actions .motion-toggle, .qr-stage-header .motion-toggle, .login-art .motion-toggle { position: static; flex-shrink: 0; align-self: center; }
 .experience-page .topbar, .wheel-top-actions, .qr-stage-header { flex-wrap: wrap; }
-.motion-paused .depth-scene *, .motion-paused .bull-svg * { animation-play-state: paused !important; }
+.motion-paused .depth-scene *, .motion-paused .bull-body { animation-play-state: paused !important; }
 .experience-page .topbar { background: #1223309c; border-bottom: 1px solid #ffffff13; }
 .experience-page .brand-title { color: #dce5ee; border-color: #ffffff26; }
 .landing-page .topbar { position: relative; }
@@ -47,13 +47,10 @@
 .hero-companion [data-bull] { width: 135px; flex-shrink: 0; filter: drop-shadow(0 12px 20px #0003); }
 .hero-companion p { font-size: 13px; color: #adbdca; max-width: 210px; line-height: 1.7; margin: 0; }
 .hero-companion strong { display: block; color: #d8efe4; font-weight: 600; margin-bottom: 4px; }
-.bull-svg { display: block; width: 100%; overflow: visible; }
-.bull-body { transform-origin: 130px 272px; animation: bull-breathe 4s ease-in-out infinite; }
-.bull-head { transform-origin: 130px 150px; animation: bull-look 6s ease-in-out infinite; }
-.arm-right { transform-origin: 174px 181px; }
-.arm-left { transform-origin: 85px 180px; }
-@keyframes bull-breathe { 50% { transform: translateY(-4px) rotate(1deg); } }
-@keyframes bull-look { 50% { transform: rotate(-4deg); } }
+.bull-mascot { position: relative; display: block; width: 100%; aspect-ratio: .75; }
+.max-image, .max-still { position: absolute; width: 150%; height: auto; max-width: none; left: -25%; top: -4%; }
+.max-image[hidden], .max-still[hidden] { display: none; }
+.bull-body { transform-origin: 50% 95%; }
 .wheel-page .wheel-shell { padding-bottom: 65px; }
 .wheel-page .wheel-grid { grid-template-columns: minmax(0,1.2fr) minmax(320px,.8fr); gap: 50px; }
 .wheel-page .wheel-area { min-height: 650px; padding: 40px 0 130px; }
@@ -72,12 +69,9 @@
 .bull-action:disabled { cursor: default; }
 .mascot-rig p { border: 1px solid #ffffff23; background: #19313ce8; color: #c7e5d8; border-radius: 16px 16px 16px 0; padding: 12px 16px; font-size: 12px; max-width: 185px; line-height: 1.5; }
 .is-winding .bull-body { animation: bull-wind .65s ease-in-out both; }
-.is-winding .arm-right { animation: bull-push .65s ease-in-out both; }
 .is-spinning .bull-body { animation: bull-cheer .6s ease-in-out infinite alternate; }
-.is-spinning .arm-right { animation: bull-push .7s ease-in-out infinite alternate; }
 .is-celebrating .bull-body { animation: bull-cheer .4s ease-in-out 4 alternate; }
 @keyframes bull-wind { 50% { transform: rotate(-14deg) translateX(-9px); } 100% { transform: rotate(14deg) translateX(12px); } }
-@keyframes bull-push { from { transform: rotate(-28deg); } to { transform: rotate(58deg); } }
 @keyframes bull-cheer { to { transform: translateY(-12px) rotate(-5deg); } }
 .report-actions { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
 .report-header { flex-wrap: wrap; }
@@ -119,6 +113,6 @@
 }
 @media(prefers-reduced-motion:reduce) {
   *,*::before,*::after { scroll-behavior: auto !important; }
-  .depth-scene *, .bull-svg * { animation: none !important; }
+  .depth-scene *, .bull-body { animation: none !important; }
   .confetti { display: none; }
 }
