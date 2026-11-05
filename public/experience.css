@@ -54,6 +54,7 @@
 .wheel-page .wheel-grid { grid-template-columns: minmax(0,1.2fr) minmax(320px,.8fr); gap: 50px; }
 .wheel-page .wheel-area { min-height: 650px; padding: 40px 0 130px; }
 .wheel-page .wheel-wrap { width: min(39vw, 560px); }
+.wheel-disc { position: absolute; inset: 0; overflow: hidden; border-radius: 50%; z-index: 1; }
 .wheel-page .wheel-wrap::before { inset: -17px; background: linear-gradient(135deg,#c4d2c8,#f6e9b9 25%,#79928c 60%,#243d49); box-shadow: 0 0 0 1px #fff4, 0 12px 0 #172a33, 0 24px 70px #0009; }
 .wheel-page .wheel-center { background: linear-gradient(145deg,#fff,#dce8de); border-color: #9bb7ac; color: #21483e; font-size: 12px; letter-spacing: .08em; }
 .wheel-page .wheel-control { background: linear-gradient(140deg,#ffffff0f,#ffffff04); border-color: #ffffff20; border-radius: 24px; padding: 30px; box-shadow: 0 25px 70px #0002; }
@@ -67,10 +68,17 @@
 .bull-action { width: 190px; border: 0; background: transparent; padding: 0; cursor: pointer; filter: drop-shadow(0 12px 18px #0005); }
 .bull-action:disabled { cursor: default; }
 .mascot-rig p { border: 1px solid #ffffff23; background: #19313ce8; color: #c7e5d8; border-radius: 16px 16px 16px 0; padding: 12px 16px; font-size: 12px; max-width: 185px; line-height: 1.5; }
-.is-winding .bull-body { animation: bull-wind .65s ease-in-out both; }
-.is-spinning .bull-body { animation: bull-cheer .6s ease-in-out infinite alternate; }
+.max-motion-layer { position: absolute; left: 0; top: 0; width: 100%; z-index: 7; pointer-events: none; }
+.max-motion-layer[hidden] { display: none; }
+.max-acting .bull-action { visibility: hidden; }
+.winner-stage { width: 100%; overflow: hidden; }
+#winnerMax { display: block; width: 100%; height: auto; }
+.winner-modal.show .winner-stage { animation: prize-closeup 1100ms cubic-bezier(.18,.75,.2,1) both; }
+.motion-paused .winner-stage { animation: none !important; }
+.winner-card { width: min(580px,100%); max-height: 95dvh; overflow-y: auto; padding: 24px; }
+.winner-card #winnerImage { width: 1px; height: 1px; }
+@keyframes prize-closeup { from { transform: scale(.72); opacity: .1; } 65% { transform: scale(1.045); opacity: 1; } to { transform: scale(1); opacity: 1; } }
 .is-celebrating .bull-body { animation: bull-cheer .4s ease-in-out 4 alternate; }
-@keyframes bull-wind { 50% { transform: rotate(-14deg) translateX(-9px); } 100% { transform: rotate(14deg) translateX(12px); } }
 @keyframes bull-cheer { to { transform: translateY(-12px) rotate(-5deg); } }
 .report-actions { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
 .report-header { flex-wrap: wrap; }
@@ -112,6 +120,6 @@
 }
 @media(prefers-reduced-motion:reduce) {
   *,*::before,*::after { scroll-behavior: auto !important; }
-  .depth-scene *, .bull-body { animation: none !important; }
+  .depth-scene *, .bull-body, .winner-stage { animation: none !important; }
   .confetti { display: none; }
 }

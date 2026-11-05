@@ -1,4 +1,5 @@
 import { api, toast, escapeHtml } from './common.js?v=20261105';
+import { MaxWheelAnimator } from './max-wheel.js?v=20261105-grip';
 
 const canvas = document.querySelector('#wheelCanvas');
 const ctx = canvas.getContext('2d');
@@ -10,6 +11,8 @@ const bullRig = document.querySelector('#bullRig');
 const bullMessage = document.querySelector('#bullMessage');
 const bullButton = document.querySelector('#bullButton');
 const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches || document.body.classList.contains('motion-paused');
+const maxActor = new MaxWheelAnimator(document.querySelector('.wheel-area'), bullRig, canvas);
+maxActor.ready.catch(() => {});
 
 const segmentIds = ['pen', 'mini-notebook', 'pen', 'phone-holder', 'pen', 'ruler', 'pen', 'mini-notebook', 'pen', 'notebook-pen', 'pen', 'phone-holder'];
 
@@ -86,12 +89,12 @@ function animateToPrize(prizeId) {
     const segmentDegrees = 360 / segmentIds.length;
     const desired = ((-(selectedIndex + .5) * segmentDegrees) % 360 + 360) % 360;
     const current = ((rotation % 360) + 360) % 360;
-    const delta = (desired - current + 360) % 360;
+    const delta = (current - desired + 360) % 360;
     const start = rotation;
-    const target = rotation + 6 * 360 + delta;
-    const duration = reduceMotion() ? 120 : 5200;
+    const target = rotation - 7 * 360 - delta;
+    const duration = reduceMotion() ? 120 : 8500;
     const started = performance.now();
-    const ease = (t) => 1 - Math.pow(1 - t, 4);
+    const ease = (t) => 1 - Math.pow(1 - t, 3);
     function frame(now) {
       const progress = Math.min(1, (now - started) / duration);
       rotation = start + (target - start) * ease(progress);
@@ -127,22 +130,27 @@ document.querySelector('#spinButton').addEventListener('click', async () => {
   button.disabled = true;
   bullButton.disabled = true;
   document.querySelector('#attendeeSelect').disabled = true;
-  button.textContent = 'El torito prepara el giro…';
+  button.textContent = 'MAX prepara el giro…';
   try {
     const result = await api('/api/admin/wheel/spin', { method: 'POST', body: { attendeeId } });
     bullRig.classList.remove('is-celebrating');
-    bullRig.classList.add('is-winding');
-    bullMessage.textContent = '¡Un poquito de impulso…!';
-    if (!reduceMotion()) await new Promise((resolve) => setTimeout(resolve, 650));
-    bullRig.classList.remove('is-winding');
+    bullMessage.textContent = 'MAX toma el borde de la ruleta…';
+    if (!reduceMotion()) {
+      try {
+        await maxActor.gripAndPush((angle) => { rotation = angle; canvas.style.transform = `rotate(${angle}deg)`; }, rotation);
+      } catch { maxActor.reset(); }
+    }
     bullRig.classList.add('is-spinning');
-    bullMessage.textContent = '¡Vamos, vamos! ¿Qué premio será?';
+    bullMessage.textContent = '¡La ruleta está girando!';
     button.textContent = 'La ruleta está girando…';
-    await animateToPrize(result.prize.id);
+    await Promise.all([animateToPrize(result.prize.id), maxActor.layer.hidden ? Promise.resolve() : maxActor.release()]);
     bullRig.classList.remove('is-spinning');
     bullRig.classList.add('is-celebrating');
     bullMessage.textContent = `¡Premio listo: ${result.prize.name}!`;
     document.querySelector('#winnerImage').src = result.prize.image;
+    await document.querySelector('#winnerImage').decode().catch(() => {});
+    await maxActor.showPrize(document.querySelector('#winnerMax'), document.querySelector('#winnerImage')).catch(() => {});
+    document.querySelector('#winnerMax').setAttribute('aria-label', `MAX sosteniendo ${result.prize.name}`);
     document.querySelector('#winnerPerson').textContent = result.attendee.name;
     document.querySelector('#winnerPrize').textContent = result.prize.name;
     document.querySelector('#winnerModal').classList.add('show');
@@ -158,12 +166,13 @@ document.querySelector('#spinButton').addEventListener('click', async () => {
   }
   finally {
     spinning = false;
+    maxActor.reset();
     bullRig.classList.remove('is-winding', 'is-spinning');
     document.querySelector('#attendeeSelect').disabled = false;
     const unavailable = !state?.attendees.some((person) => !person.prizeId) || !state?.prizes.some((prize) => prize.remaining > 0);
     button.disabled = unavailable;
     bullButton.disabled = unavailable;
-    button.textContent = '✦ ¡Que gire el torito!';
+    button.textContent = 'Girar ruleta';
   }
 });
  bullButton.addEventListener('click', () => document.querySelector('#spinButton').click());

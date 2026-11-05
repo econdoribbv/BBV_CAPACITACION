@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#21172D">
   <title>Ruleta de premios | BBV</title>
-  <link rel="stylesheet" href="/styles.css?v=20261105"><link rel="stylesheet" href="/experience.css?v=20261105-max2">
+  <link rel="stylesheet" href="/styles.css?v=20261105"><link rel="stylesheet" href="/experience.css?v=20261105-grip">
 </head>
 <body class="wheel-page experience-page">
   <main class="wheel-shell">
@@ -16,15 +16,15 @@
 
     <section class="wheel-grid">
       <div class="wheel-area">
-        <div class="wheel-wrap"><div class="wheel-pointer"></div><canvas id="wheelCanvas" width="900" height="900"></canvas><div class="wheel-center">GIRA<br>Y GANA</div></div>
-        <div class="mascot-rig" id="bullRig"><button type="button" class="bull-action" id="bullButton" aria-label="Pedir al torito que gire la ruleta"><span data-bull></span></button><p id="bullMessage" role="status">Elige un participante.<br>¡Yo me encargo del giro!</p></div>
+        <div class="wheel-wrap"><div class="wheel-pointer"></div><div class="wheel-disc"><canvas id="wheelCanvas" width="900" height="900"></canvas></div><div class="wheel-center">GIRA<br>Y GANA</div></div>
+        <div class="mascot-rig" id="bullRig"><button type="button" class="bull-action" id="bullButton" aria-label="Girar ruleta con MAX"><span data-bull></span></button><p id="bullMessage" role="status">Elige un participante para comenzar.</p></div>
       </div>
       <aside class="wheel-control">
         <span class="eyebrow">Premios disponibles</span>
         <h1>Un giro.<br>Una gran sonrisa.</h1>
         <p>Selecciona a una persona registrada. Cada premio se descuenta automáticamente del inventario.</p>
         <div class="field dark-field"><label for="attendeeSelect">Participante</label><select id="attendeeSelect"><option value="">Selecciona un participante</option></select></div>
-        <button class="btn spin-btn" id="spinButton" type="button">✦ ¡Que gire el torito!</button>
+        <button class="btn spin-btn" id="spinButton" type="button">Girar ruleta</button>
         <div class="inventory" id="inventory"></div>
         <div style="margin-top:18px;border-top:1px solid rgba(255,255,255,.1);padding-top:16px">
           <div class="panel-header" style="margin-bottom:10px"><div><h3 style="color:white">Últimos ganadores</h3></div></div>
@@ -35,9 +35,9 @@
   </main>
 
   <div class="winner-modal" id="winnerModal" role="dialog" aria-modal="true" aria-label="Premio ganado" aria-hidden="true" inert>
-    <article class="winner-card"><span class="eyebrow">¡Tenemos premio!</span><img id="winnerImage" alt="Premio"><p id="winnerPerson">Participante</p><h2 id="winnerPrize">Premio</h2><p>Acércate al equipo organizador para recibirlo.</p><button class="btn btn-green btn-lg" id="closeWinner" type="button">Continuar</button></article>
+    <article class="winner-card"><span class="eyebrow">¡Tenemos premio!</span><div class="winner-stage"><canvas id="winnerMax" width="700" height="560" role="img" aria-label="MAX sosteniendo el premio"></canvas><img id="winnerImage" class="sr-only" alt="Premio"></div><p id="winnerPerson">Participante</p><h2 id="winnerPrize">Premio</h2><p>Acércate al equipo organizador para recibirlo.</p><button class="btn btn-green btn-lg" id="closeWinner" type="button">Continuar</button></article>
   </div>
   <div class="toast"></div>
-  <script type="module" src="/wheel.js?v=20261105"></script>
+  <script type="module" src="/wheel.js?v=20261105-grip"></script>
 <script type="module" src="/experience.js?v=20261105-max"></script></body>
 </html>
