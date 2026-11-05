@@ -137,18 +137,17 @@ function scoreBoard() {
     .sort((a, b) => b.score - a.score || b.correct - a.correct || a.name.localeCompare(b.name, 'es'));
 }
 
-const staffPasswords = {
-  admin: process.env.ADMIN_PASSWORD || 'AdminFeria2026!',
-  dpinto: process.env.DPINTO_PASSWORD || 'Dpinto2026!',
-  avega: process.env.AVEGA_PASSWORD || 'BBVAvega2026!'
-};
-const staffHashes = Object.fromEntries(Object.entries(staffPasswords).map(([user, pass]) => [user, bcrypt.hashSync(pass, 10)]));
-// Explicit account reset requested by the owner. The obsolete plaintext Render
-// variable must not override this replacement credential. Future rotations can
-// supply a bcrypt hash via CJUSTINIANO_PASSWORD_HASH without committing a password.
-staffHashes.cjustiniano = process.env.CJUSTINIANO_PASSWORD_HASH || require('./staff-credentials.json').cjustiniano;
-if (!/^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(staffHashes.cjustiniano)) {
-  throw new Error('CJUSTINIANO_PASSWORD_HASH debe contener un hash bcrypt válido.');
+// Owner-requested reset for the complete staff roster. Old plaintext Render
+// variables no longer override the credentials delivered to the owner.
+const configuredStaffHashes = require('./staff-credentials.json');
+const staffHashes = {};
+for (const username of ['admin', 'cjustiniano', 'dpinto', 'avega']) {
+  const key = `${username.toUpperCase()}_PASSWORD_HASH`;
+  const hash = process.env[key] || configuredStaffHashes[username];
+  if (typeof hash !== 'string' || !/^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(hash)) {
+    throw new Error(`${key} debe contener un hash bcrypt válido.`);
+  }
+  staffHashes[username] = hash;
 }
 
 app.set('trust proxy', 1);
@@ -565,7 +564,4 @@ app.use((error, _req, res, _next) => {
 
 app.listen(PORT, () => {
   console.log(`Conecta y Participa disponible en http://localhost:${PORT}`);
-  if (IS_PRODUCTION && (!process.env.ADMIN_PASSWORD || !process.env.DPINTO_PASSWORD || !process.env.AVEGA_PASSWORD)) {
-    console.warn('AVISO: configura ADMIN_PASSWORD, DPINTO_PASSWORD y AVEGA_PASSWORD en las variables de entorno de Render.');
-  }
 });

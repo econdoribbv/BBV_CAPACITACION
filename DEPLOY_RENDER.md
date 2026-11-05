@@ -5,7 +5,7 @@ Los cambios de código no crean almacenamiento persistente por sí solos. Un ser
 1. En el servicio existente `srv-da86f1cs728c73as33hg`, conserva el repositorio `econdoribbv/BBV_CAPACITACION` y la rama `main`.
 2. Si está en Free, selecciona una instancia de pago compatible con discos. Revisa y acepta el precio en Render. Este cambio no se ha contratado desde el repositorio.
 3. Agrega un disco persistente de 1 GB con **Mount path `/var/data`**. Agregar el disco puede iniciar un despliegue automáticamente.
-4. En Environment, establece `DATA_DIR=/var/data`. Conserva `SESSION_SECRET`, `ADMIN_PASSWORD`, `DPINTO_PASSWORD` y `AVEGA_PASSWORD`. `cjustiniano` usa la clave restablecida mediante el hash incluido en el proyecto. Para los QR puedes establecer `PUBLIC_URL` con la URL pública HTTPS del servicio.
+4. En Environment, establece `DATA_DIR=/var/data` y conserva `SESSION_SECRET`. Las cuatro cuentas usan los hashes incluidos en el proyecto. Para los QR puedes establecer `PUBLIC_URL` con la URL pública HTTPS del servicio.
 5. Usa `npm ci` como Build Command y `npm start` como Start Command. Mantén una sola instancia del servidor (el archivo de datos se usa desde un único proceso).
 6. Haz **Manual Deploy → Deploy latest commit**. Si usas Blueprint, sincroniza su configuración; un deploy de código normal no aplica automáticamente los cambios de `render.yaml`.
 7. Abre `/login.html`, entra al panel y confirma el aviso verde de almacenamiento persistente. Registra una persona de prueba desde otra sesión; descarga el CSV y el respaldo. Reinicia el servicio y confirma que ese registro sigue presente antes del evento.
@@ -21,9 +21,7 @@ URL pública comprobada del proyecto: **https://conecta-y-participa-bbv.onrender
 - [Ruleta con MAX](https://conecta-y-participa-bbv.onrender.com/ruleta.html) (ruleta autenticada: `/wheel.html`)
 - [QR](https://conecta-y-participa-bbv.onrender.com/qr.html)
 
-Para `admin`, `dpinto` y `avega`, las variables de entorno de Render tienen prioridad sobre los valores locales de `.env.example`.
-
-**Restablecimiento de `cjustiniano`:** por solicitud del propietario, se reemplazó su credencial por un hash bcrypt en `staff-credentials.json`. La clave nueva se entrega al responsable fuera del repositorio. La antigua variable `CJUSTINIANO_PASSWORD` se ignora deliberadamente: basta desplegar este cambio para aplicar el restablecimiento. Para futuras rotaciones, configura `CJUSTINIANO_PASSWORD_HASH` con un hash bcrypt válido; esa variable sí tiene prioridad. El usuario conserva los mismos permisos de organizador. El restablecimiento no modifica los datos del evento ni los requisitos de almacenamiento.
+**Las cuatro cuentas:** `admin`, `cjustiniano`, `dpinto` y `avega` usan hashes bcrypt en `staff-credentials.json`. Por solicitud del propietario, se restablecieron las claves de `admin`, `cjustiniano` y `dpinto`; se conservó la clave verificada de `avega`. Las claves se entregan al responsable fuera del repositorio. Las antiguas variables `*_PASSWORD` se ignoran deliberadamente: desplegar este cambio aplica los accesos corregidos. Para futuras rotaciones, las variables `ADMIN_PASSWORD_HASH`, `CJUSTINIANO_PASSWORD_HASH`, `DPINTO_PASSWORD_HASH` y `AVEGA_PASSWORD_HASH` admiten hashes bcrypt válidos y tienen prioridad. Las cuatro cuentas conservan los mismos permisos de organizador. El cambio no modifica los datos del evento ni los requisitos de almacenamiento.
 
 ## Respaldo y recuperación
 

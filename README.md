@@ -28,22 +28,22 @@ npm start
 
 Abre `http://localhost:3000`.
 
-Para una prueba local inmediata, las credenciales iniciales son:
+Los cuatro usuarios habilitados son:
 
-| Usuario | Contraseña local predeterminada |
+| Usuario | Credencial |
 | --- | --- |
-| `admin` | `AdminFeria2026!` |
+| `admin` | Clave entregada al responsable; hash bcrypt en el proyecto. |
 | `cjustiniano` | Clave restablecida y entregada al responsable; solo se almacena su hash bcrypt. |
-| `dpinto` | `Dpinto2026!` |
-| `avega` | `BBVAvega2026!` |
+| `dpinto` | Clave entregada al responsable; hash bcrypt en el proyecto. |
+| `avega` | Se conserva su clave verificada; hash bcrypt en el proyecto. |
 
-Las claves predeterminadas de los otros usuarios son solo para revisión local. En Render se deben configurar como variables privadas. `cjustiniano` usa el hash de `staff-credentials.json`, reemplazable mediante `CJUSTINIANO_PASSWORD_HASH`; la antigua variable `CJUSTINIANO_PASSWORD` ya no se utiliza.
+Todos usan los hashes de `staff-credentials.json`. Las claves se entregan al responsable fuera del repositorio. Las antiguas variables de texto plano `*_PASSWORD` ya no se utilizan. Para rotar una cuenta, configura su variable `ADMIN_PASSWORD_HASH`, `CJUSTINIANO_PASSWORD_HASH`, `DPINTO_PASSWORD_HASH` o `AVEGA_PASSWORD_HASH` con un hash bcrypt válido. Todos mantienen los permisos de organizador para panel, preguntas, informes y ruleta.
 
 ## Publicar en GitHub y Render
 
 Sigue [DEPLOY_RENDER.md](DEPLOY_RENDER.md) para actualizar el servicio existente.
 
-**Un deploy de código no crea el disco.** Configura un servicio de pago compatible con discos, monta 1 GB en `/var/data` y establece `DATA_DIR=/var/data`. El propietario debe revisar y aceptar los costos en Render. Conserva `SESSION_SECRET`, `ADMIN_PASSWORD`, `DPINTO_PASSWORD` y `AVEGA_PASSWORD` como variables privadas. Para `cjustiniano`, se utiliza el hash de la clave restablecida incluido en el proyecto; una rotación posterior puede usar `CJUSTINIANO_PASSWORD_HASH`.
+**Un deploy de código no crea el disco.** Configura un servicio de pago compatible con discos, monta 1 GB en `/var/data` y establece `DATA_DIR=/var/data`. El propietario debe revisar y aceptar los costos en Render. Conserva `SESSION_SECRET` como variable privada. Las cuatro cuentas usan los hashes incluidos en el proyecto; las variables `*_PASSWORD_HASH` son opcionales para rotaciones posteriores.
 
 Sin un disco montado realmente, Render puede mostrar la web y exportar datos existentes, pero los nuevos registros y cambios quedan bloqueados para evitar otra pérdida. El aviso del panel confirma cuándo está activo el almacenamiento persistente.
 

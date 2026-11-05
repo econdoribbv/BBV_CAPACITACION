@@ -5,16 +5,16 @@ const fs = require('node:fs');
 const { startServer, tempDirectory } = require('./helpers.cjs');
 const bcrypt = require('bcryptjs');
 
-test('cjustiniano accepts the replacement hash, rejects the obsolete plaintext variable and retains staff access', async (t) => {
+for (const username of ['admin', 'cjustiniano', 'dpinto', 'avega']) test(`${username} accepts the replacement hash, rejects the obsolete plaintext variable and retains staff access`, async (t) => {
   const directory = tempDirectory('credentials-');
   const server = await startServer(directory, {
-    CJUSTINIANO_PASSWORD: 'obsolete-render-password',
-    CJUSTINIANO_PASSWORD_HASH: bcrypt.hashSync('new-test-password-only', 10)
+    [`${username.toUpperCase()}_PASSWORD`]: 'obsolete-render-password',
+    [`${username.toUpperCase()}_PASSWORD_HASH`]: bcrypt.hashSync('new-test-password-only', 10)
   });
   t.after(async () => { await server.stop(); fs.rmSync(directory, { recursive: true, force: true }); });
   const login = (password) => fetch(server.url + '/api/auth/login', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: 'cjustiniano', password })
+    body: JSON.stringify({ username, password })
   });
   assert.equal((await login('obsolete-render-password')).status, 401);
   const response = await login('new-test-password-only');
