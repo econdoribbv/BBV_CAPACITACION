@@ -24,12 +24,14 @@ function atomicWrite(file, text) {
 
 function openStorage({ root, freshStore, normalizeStore, env = process.env }) {
   const onRender = env.RENDER === 'true' || Boolean(env.RENDER_SERVICE_ID);
-  const directory = path.resolve(env.DATA_DIR || (onRender ? '/var/data' : path.join(root, 'data')));
+  let directory = path.resolve(env.DATA_DIR || (onRender ? '/var/data' : path.join(root, 'data')));
   let persistent = false;
   if (onRender && process.platform === 'linux') {
     persistent = hasPersistentMount(directory, fs.readFileSync('/proc/self/mountinfo', 'utf8'));
   }
-  const writable = !onRender || persistent;
+  const temporary = onRender && !persistent;
+  if (temporary) directory = path.resolve(env.TEMP_DATA_DIR || path.join(root, 'data'));
+  const writable = true;
   const file = path.join(directory, 'store.json');
   const legacy = path.join(root, 'data', 'store.json');
   function read(filePath) {
@@ -58,7 +60,7 @@ function openStorage({ root, freshStore, normalizeStore, env = process.env }) {
   }
   return {
     initial,
-    get status() { return { writable: writable && !fault, persistent, onRender }; },
+    get status() { return { writable: writable && !fault, persistent, onRender, temporary }; },
     rollback() { return JSON.parse(committed); },
     save(value) {
       if (!writable || fault) throw new Error('El almacenamiento no está disponible para guardar datos.');

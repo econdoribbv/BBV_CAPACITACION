@@ -4,10 +4,8 @@ async function loadPublic() {
   try {
     const data = await api('/api/public');
     document.querySelector('#registeredCount').textContent = data.registered;
-    if (data.registrationOpen === false) {
-      document.querySelector('#registerForm button[type="submit"]').disabled = true;
-      document.querySelector('#registrationStatus').textContent = 'El registro se habilitará en breve. Consulta al equipo organizador.';
-    }
+    document.querySelector('#registerForm button[type="submit"]').disabled = data.registrationOpen === false;
+    document.querySelector('#registrationStatus').textContent = data.registrationOpen === false ? 'No se pudo guardar el registro. Solicita ayuda al equipo organizador.' : '';
     if (data.participant) location.href = '/participant.html';
   } catch {}
 }

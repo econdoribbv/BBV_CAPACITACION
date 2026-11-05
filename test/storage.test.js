@@ -50,12 +50,15 @@ test('failed disk writes preserve the acknowledged memory state and block furthe
   assert.equal(db.status.writable, false);
   assert.equal(open().initial.attendees.length, 0);
 });
-test('Render refuses writes without an actual persistent mount', (t) => {
+test('Render free allows registration in temporary storage and identifies it honestly', (t) => {
   const { open, root } = fixture(t);
   const db = open({ RENDER: 'true', DATA_DIR: path.join(root, 'unmounted') });
-  assert.equal(db.status.writable, false);
-  assert.throws(() => db.save(db.initial));
-  assert.equal(fs.existsSync(path.join(root, 'unmounted/store.json')), false);
+  assert.equal(db.status.writable, true);
+  assert.equal(db.status.temporary, true);
+  assert.equal(db.status.persistent, false);
+  db.initial.attendees.push({ id: 'test', email: 'test@example.test' });
+  db.save(db.initial);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(root, 'data/store.json'))).attendees.length, 1);
 });
 test('mount recognition requires containment, ignores root and handles encoded paths', () => {
   const mounts = '1 0 0:1 / / rw - overlay overlay rw\n2 1 8:1 / /var/data rw - ext4 disk rw\n3 1 8:2 / /my\\040disk rw - ext4 disk rw';

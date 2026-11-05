@@ -19,7 +19,7 @@ async function startServer(directory, overrides = {}) {
   const child = spawn(process.execPath, ['server.js'], {
     cwd: path.resolve(__dirname, '..'), windowsHide: true,
     env: { ...process.env, NODE_ENV: 'test', RENDER: '', RENDER_SERVICE_ID: '',
-      DATA_DIR: directory, PORT: String(port), ADMIN_PASSWORD_HASH: testAdminHash,
+      DATA_DIR: directory, TEMP_DATA_DIR: directory, PORT: String(port), ADMIN_PASSWORD_HASH: testAdminHash,
       SESSION_SECRET: 'isolated-integration-test-session', ...overrides },
     stdio: ['ignore', 'pipe', 'pipe']
   });

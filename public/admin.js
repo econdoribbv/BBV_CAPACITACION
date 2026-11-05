@@ -71,10 +71,10 @@ function readQuestionEditor() {
 function render(data) {
   state = data;
   const notice = document.querySelector('#storageNotice');
-  notice.classList.toggle('storage-warning', !data.storage?.writable);
+  notice.classList.toggle('storage-warning', !data.storage?.writable || data.storage?.temporary);
   notice.textContent = !data.storage?.writable
     ? 'Registro cerrado. Configura un disco persistente en /var/data y DATA_DIR=/var/data en Render. Si el disco ya existe, revisa sus permisos y espacio disponible. Puedes descargar los registros actuales.'
-    : data.storage.persistent ? 'Almacenamiento persistente activo · Descarga un respaldo al finalizar cada evento.' : 'Modo local · Los registros se guardan en este equipo.';
+    : data.storage.temporary ? 'Registro y ruleta habilitados. El plan gratuito guarda archivos temporales: descarga el informe y el respaldo antes de reiniciar o desplegar.' : data.storage.persistent ? 'Almacenamiento persistente activo · Descarga un respaldo al finalizar cada evento.' : 'Modo local · Los registros se guardan en este equipo.';
   document.querySelector('#staffUser').textContent = data.user;
   document.querySelector('#avatar').textContent = data.user[0];
   document.querySelector('#statAttendees').textContent = data.attendees.length;

@@ -2,8 +2,8 @@ services:
   - type: web
     name: conecta-y-participa-bbv
     runtime: node
-    # Existing services keep their current plan. A paid instance + disk is required
-    # for registrations; see DEPLOY_RENDER.md before deploying.
+    # Existing services keep their current plan. Free registration is enabled.
+    # Without a mounted disk, data is temporary. See DEPLOY_RENDER.md.
     autoDeployTrigger: off
     buildCommand: npm ci
     startCommand: npm start

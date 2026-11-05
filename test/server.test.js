@@ -77,15 +77,19 @@ test('register, export, award and restart retain every email and inventory chang
   assert.equal(after.prizes.reduce((n, p) => n + p.remaining, 0), before.prizes.reduce((n, p) => n + p.remaining, 0) - 1);
 });
 
-test('Render without a disk serves the app but rejects registrations and still allows export', async (t) => {
+test('Render free accepts registrations and wheel spins without a paid disk', async (t) => {
   const directory = tempDirectory('render-');
   const server = await startServer(directory, { RENDER: 'true' });
   t.after(async () => { await server.stop(); fs.rmSync(directory, { recursive: true, force: true }); });
   const publicState = await (await fetch(server.url + '/api/public')).json();
-  assert.equal(publicState.registrationOpen, false);
-  assert.equal((await fetch(server.url + '/api/register', { method: 'POST' })).status, 503);
+  assert.equal(publicState.registrationOpen, true);
+  const registration = await fetch(server.url + '/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Persona Prueba', email: 'free@example.test', gender: 'Masculino', ageRange: '26-36' }) });
+  assert.equal(registration.status, 201);
+  const person = (await registration.json()).attendee;
   const login = await fetch(server.url + '/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'admin', password: 'integration-only' }) });
   const report = await fetch(server.url + '/api/admin/export.csv', { headers: { Cookie: login.headers.get('set-cookie').split(';')[0] } });
   assert.equal(report.status, 200);
-  assert.equal(fs.existsSync(directory + '/store.json'), false);
+  const spin = await fetch(server.url + '/api/admin/wheel/spin', { method: 'POST', headers: { 'Content-Type': 'application/json', Cookie: login.headers.get('set-cookie').split(';')[0] }, body: JSON.stringify({ attendeeId: person.id }) });
+  assert.equal(spin.status, 200);
+  assert.equal(fs.existsSync(directory + '/store.json'), true);
 });
