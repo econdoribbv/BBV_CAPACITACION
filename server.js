@@ -176,7 +176,15 @@ app.use((req, res, next) => {
   }
   next();
 });
-app.use(express.static(path.join(ROOT, 'public'), { extensions: ['html'], maxAge: IS_PRODUCTION ? '10m' : 0 }));
+app.use(express.static(path.join(ROOT, 'public'), {
+  extensions: ['html'],
+  maxAge: IS_PRODUCTION ? '10m' : 0,
+  setHeaders(res, file) {
+    // HTML selects the asset versions. Never retain an old page across deploys.
+    if (path.extname(file) === '.html') res.setHeader('Cache-Control', 'private, no-store');
+    else if (['.js', '.css'].includes(path.extname(file))) res.setHeader('Cache-Control', 'no-cache');
+  }
+}));
 
 function requireStaff(req, res, next) {
   if (!req.session.staffUser) return res.status(401).json({ error: 'Inicia sesión como organizador.' });

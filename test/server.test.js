@@ -18,6 +18,10 @@ test('register, export, award and restart retain every email and inventory chang
     assert.equal(res.status, 200);
     cookie = res.headers.get('set-cookie').split(';')[0];
   };
+  assert.equal((await request('/')).headers.get('cache-control'), 'private, no-store');
+  assert.equal((await request('/login.html')).headers.get('cache-control'), 'private, no-store');
+  assert.equal((await request('/experience.js')).headers.get('cache-control'), 'no-cache');
+  assert.equal((await request('/experience.css')).headers.get('cache-control'), 'no-cache');
   assert.equal((await request('/api/admin/export.csv')).status, 401);
   assert.equal((await request('/api/admin/backup.json')).status, 401);
   await login();
