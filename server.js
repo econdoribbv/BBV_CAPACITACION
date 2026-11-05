@@ -139,11 +139,17 @@ function scoreBoard() {
 
 const staffPasswords = {
   admin: process.env.ADMIN_PASSWORD || 'AdminFeria2026!',
-  cjustiniano: process.env.CJUSTINIANO_PASSWORD || 'Cjustiniano2026!',
   dpinto: process.env.DPINTO_PASSWORD || 'Dpinto2026!',
   avega: process.env.AVEGA_PASSWORD || 'BBVAvega2026!'
 };
 const staffHashes = Object.fromEntries(Object.entries(staffPasswords).map(([user, pass]) => [user, bcrypt.hashSync(pass, 10)]));
+// Explicit account reset requested by the owner. The obsolete plaintext Render
+// variable must not override this replacement credential. Future rotations can
+// supply a bcrypt hash via CJUSTINIANO_PASSWORD_HASH without committing a password.
+staffHashes.cjustiniano = process.env.CJUSTINIANO_PASSWORD_HASH || require('./staff-credentials.json').cjustiniano;
+if (!/^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(staffHashes.cjustiniano)) {
+  throw new Error('CJUSTINIANO_PASSWORD_HASH debe contener un hash bcrypt válido.');
+}
 
 app.set('trust proxy', 1);
 app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'cross-origin' } }));
@@ -559,7 +565,7 @@ app.use((error, _req, res, _next) => {
 
 app.listen(PORT, () => {
   console.log(`Conecta y Participa disponible en http://localhost:${PORT}`);
-  if (IS_PRODUCTION && (!process.env.ADMIN_PASSWORD || !process.env.CJUSTINIANO_PASSWORD || !process.env.DPINTO_PASSWORD || !process.env.AVEGA_PASSWORD)) {
-    console.warn('AVISO: configura las cuatro contraseñas en las variables de entorno de Render.');
+  if (IS_PRODUCTION && (!process.env.ADMIN_PASSWORD || !process.env.DPINTO_PASSWORD || !process.env.AVEGA_PASSWORD)) {
+    console.warn('AVISO: configura ADMIN_PASSWORD, DPINTO_PASSWORD y AVEGA_PASSWORD en las variables de entorno de Render.');
   }
 });

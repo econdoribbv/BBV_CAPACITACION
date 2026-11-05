@@ -17,8 +17,6 @@ services:
         generateValue: true
       - key: ADMIN_PASSWORD
         sync: false
-      - key: CJUSTINIANO_PASSWORD
-        sync: false
       - key: DPINTO_PASSWORD
         sync: false
       - key: AVEGA_PASSWORD

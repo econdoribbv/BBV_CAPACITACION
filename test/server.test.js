@@ -3,6 +3,27 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { startServer, tempDirectory } = require('./helpers.cjs');
+const bcrypt = require('bcryptjs');
+
+test('cjustiniano accepts the replacement hash, rejects the obsolete plaintext variable and retains staff access', async (t) => {
+  const directory = tempDirectory('credentials-');
+  const server = await startServer(directory, {
+    CJUSTINIANO_PASSWORD: 'obsolete-render-password',
+    CJUSTINIANO_PASSWORD_HASH: bcrypt.hashSync('new-test-password-only', 10)
+  });
+  t.after(async () => { await server.stop(); fs.rmSync(directory, { recursive: true, force: true }); });
+  const login = (password) => fetch(server.url + '/api/auth/login', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: 'cjustiniano', password })
+  });
+  assert.equal((await login('obsolete-render-password')).status, 401);
+  const response = await login('new-test-password-only');
+  assert.equal(response.status, 200);
+  const cookie = response.headers.get('set-cookie').split(';')[0];
+  for (const route of ['/api/admin/state', '/api/wheel/state', '/api/admin/export.csv']) {
+    assert.equal((await fetch(server.url + route, { headers: { Cookie: cookie } })).status, 200);
+  }
+});
 
 test('register, export, award and restart retain every email and inventory change', async (t) => {
   const directory = tempDirectory('api-');

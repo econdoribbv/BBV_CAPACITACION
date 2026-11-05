@@ -33,17 +33,17 @@ Para una prueba local inmediata, las credenciales iniciales son:
 | Usuario | Contraseña local predeterminada |
 | --- | --- |
 | `admin` | `AdminFeria2026!` |
-| `cjustiniano` | `Cjustiniano2026!` |
+| `cjustiniano` | Clave restablecida y entregada al responsable; solo se almacena su hash bcrypt. |
 | `dpinto` | `Dpinto2026!` |
 | `avega` | `BBVAvega2026!` |
 
-Estas contraseñas son solo para revisión local. En Render se deben configurar obligatoriamente como variables privadas.
+Las claves predeterminadas de los otros usuarios son solo para revisión local. En Render se deben configurar como variables privadas. `cjustiniano` usa el hash de `staff-credentials.json`, reemplazable mediante `CJUSTINIANO_PASSWORD_HASH`; la antigua variable `CJUSTINIANO_PASSWORD` ya no se utiliza.
 
 ## Publicar en GitHub y Render
 
 Sigue [DEPLOY_RENDER.md](DEPLOY_RENDER.md) para actualizar el servicio existente.
 
-**Un deploy de código no crea el disco.** Configura un servicio de pago compatible con discos, monta 1 GB en `/var/data` y establece `DATA_DIR=/var/data`. El propietario debe revisar y aceptar los costos en Render. Conserva `SESSION_SECRET`, `ADMIN_PASSWORD`, `CJUSTINIANO_PASSWORD`, `DPINTO_PASSWORD` y `AVEGA_PASSWORD` como variables privadas.
+**Un deploy de código no crea el disco.** Configura un servicio de pago compatible con discos, monta 1 GB en `/var/data` y establece `DATA_DIR=/var/data`. El propietario debe revisar y aceptar los costos en Render. Conserva `SESSION_SECRET`, `ADMIN_PASSWORD`, `DPINTO_PASSWORD` y `AVEGA_PASSWORD` como variables privadas. Para `cjustiniano`, se utiliza el hash de la clave restablecida incluido en el proyecto; una rotación posterior puede usar `CJUSTINIANO_PASSWORD_HASH`.
 
 Sin un disco montado realmente, Render puede mostrar la web y exportar datos existentes, pero los nuevos registros y cambios quedan bloqueados para evitar otra pérdida. El aviso del panel confirma cuándo está activo el almacenamiento persistente.
 
