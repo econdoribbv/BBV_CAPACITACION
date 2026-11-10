@@ -8,9 +8,9 @@ Aplicación web para registrar estudiantes mediante QR, ejecutar un cuestionario
 - Ingreso automático al cuestionario después de completar un registro válido.
 - QR de registro generado con la URL pública configurada.
 - Cuatro accesos de organizador: `admin`, `cjustiniano`, `dpinto` y `avega`.
-- Cuestionario en vivo con sala, proyección, respuestas móviles, rapidez, resultados y clasificación.
+- Cuestionario en vivo por juegos consecutivos (mínimo 3 participantes) que avanza solo con el tiempo de cada pregunta.
 - Editor de preguntas desde el panel.
-- Ruleta completamente separada, con acceso propio, imágenes, ganador registrado e inventario automático.
+- Ruleta con los 5 mejores puntajes de cada juego: se abre sola al terminar, muestra el turno automáticamente y gira al tocar el centro.
 - Selección ponderada por existencias: al inicio, un bolígrafo tiene 150/280 de probabilidad; las probabilidades se ajustan automáticamente al inventario restante.
 - Exportación de participantes a CSV y respaldo completo en JSON, con manejo de sesión vencida.
 - Guardado atómico con copia anterior; nunca sustituye archivos dañados por una base vacía.
@@ -50,11 +50,16 @@ El panel identifica si el almacenamiento es temporal o persistente. Solo se bloq
 ## Operación durante la feria
 
 1. El organizador entra por `/login.html` y accede al panel administrativo.
-2. Desde el panel abre **Proyectar QR** en una pantalla separada, sin controles administrativos visibles.
-3. Los estudiantes escanean, completan datos válidos y entran automáticamente a su pantalla privada.
-4. En **Preguntas**, ajusta y guarda el cuestionario.
-5. En **Cuestionario**, pulsa **Iniciar desde la primera**, luego **Mostrar respuesta** y **Siguiente**.
-6. La ruleta no está dentro del panel del cuestionario. Se abre por separado en `/ruleta.html`; selecciona un participante sin premio y pulsa **Girar**.
+2. Abre **Proyectar preguntas** en la pantalla del público. En la sala de espera se muestra el QR de registro, así que no hace falta descargarlo. **Proyectar QR** también lo abre en una pantalla aparte, con opción de pantalla completa.
+3. Los estudiantes escanean, completan sus datos y entran a la sala del juego abierto. Si ya hay un juego en curso, esperan el siguiente.
+4. Con al menos 3 participantes en sala, el organizador pulsa **Iniciar juego**.
+5. El juego avanza solo. Al terminar el tiempo de cada pregunta se bloquean las respuestas, se muestra la respuesta correcta unos segundos y empieza la siguiente pregunta. Si todos responden antes, la pregunta se cierra en ese momento.
+6. Al terminar la última pregunta, o si el organizador pulsa **Finalizar juego**, la proyección muestra los 5 mejores puntajes y abre la ruleta automáticamente.
+7. En la ruleta aparece solo el nombre del siguiente ganador. El organizador toca el centro de la ruleta y se asigna el premio. La ruleta proyectada no muestra cantidades de premios; el inventario está en **Resumen** del panel.
+8. Para el siguiente grupo, pulsa **Nuevo juego** (o directamente **Iniciar juego**). Quienes llegaron durante el juego anterior se suman automáticamente.
+9. Cada correo puede jugar como máximo 3 veces. Al terminar su juego, el participante ve el botón **Jugar otra vez**.
+
+Los jugadores no ven su posición, solo su puntaje. El informe CSV incluye a todas las personas de todos los juegos, con número de juego, puntaje, posición y premio.
 
 ## Copia de seguridad
 

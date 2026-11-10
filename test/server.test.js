@@ -27,7 +27,7 @@ for (const username of ['admin', 'cjustiniano', 'dpinto', 'avega']) test(`${user
 
 test('register, export, award and restart retain every email and inventory change', async (t) => {
   const directory = tempDirectory('api-');
-  let server = await startServer(directory);
+  let server = await startServer(directory, { MIN_PLAYERS: '1' });
   t.after(async () => { await server.stop(); fs.rmSync(directory, { recursive: true, force: true }); });
   let cookie = '';
   const request = (route, method = 'GET', body) => fetch(server.url + route, {
@@ -50,9 +50,13 @@ test('register, export, award and restart retain every email and inventory chang
     name: `María Prueba`, email: `test${i}@example.test`, gender: 'Femenino', ageRange: '26-36'
   })));
   assert.ok(records.every((res) => res.status === 201));
-  const attendee = (await records[0].json()).attendee;
-  assert.equal((await request('/api/register', 'POST', { name: 'María Prueba', email: 'test0@example.test', gender: 'Femenino', ageRange: '26-36' })).status, 409);
-  const before = await (await request('/api/wheel/state')).json();
+  assert.equal((await request('/api/register', 'POST', { name: 'Otra Persona', email: 'test0@example.test', gender: 'Femenino', ageRange: '26-36' })).status, 409);
+  // This session is also the last registered participant: it plays and wins.
+  assert.equal((await request('/api/admin/game/start', 'POST')).status, 200);
+  assert.equal((await request('/api/participant/answer', 'POST', { answerIndex: 1 })).status, 200);
+  assert.equal((await request('/api/admin/game/finish', 'POST')).status, 200);
+  const before = await (await request('/api/admin/state')).json();
+  const attendee = { id: (await (await request('/api/wheel/state')).json()).queue[0].attendeeId };
   const spins = await Promise.all([request('/api/admin/wheel/spin', 'POST', { attendeeId: attendee.id }), request('/api/admin/wheel/spin', 'POST', { attendeeId: attendee.id })]);
   assert.deepEqual(spins.map((res) => res.status).sort(), [200, 409]);
   const csv = await request('/api/admin/export.csv');
@@ -69,9 +73,9 @@ test('register, export, award and restart retain every email and inventory chang
   assert.equal(backup.attendees.length, 8);
   assert.equal(backup.spins.length, 1);
   await server.stop();
-  server = await startServer(directory);
+  server = await startServer(directory, { MIN_PLAYERS: '1' });
   cookie = ''; await login();
-  const after = await (await request('/api/wheel/state')).json();
+  const after = await (await request('/api/admin/state')).json();
   assert.equal(after.attendees.length, 8);
   assert.equal(after.spinCount, 1);
   assert.equal(after.prizes.reduce((n, p) => n + p.remaining, 0), before.prizes.reduce((n, p) => n + p.remaining, 0) - 1);
@@ -79,7 +83,7 @@ test('register, export, award and restart retain every email and inventory chang
 
 test('Render free accepts registrations and wheel spins without a paid disk', async (t) => {
   const directory = tempDirectory('render-');
-  const server = await startServer(directory, { RENDER: 'true' });
+  const server = await startServer(directory, { RENDER: 'true', MIN_PLAYERS: '1' });
   t.after(async () => { await server.stop(); fs.rmSync(directory, { recursive: true, force: true }); });
   const publicState = await (await fetch(server.url + '/api/public')).json();
   assert.equal(publicState.registrationOpen, true);
@@ -89,7 +93,13 @@ test('Render free accepts registrations and wheel spins without a paid disk', as
   const login = await fetch(server.url + '/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'admin', password: 'integration-only' }) });
   const report = await fetch(server.url + '/api/admin/export.csv', { headers: { Cookie: login.headers.get('set-cookie').split(';')[0] } });
   assert.equal(report.status, 200);
-  const spin = await fetch(server.url + '/api/admin/wheel/spin', { method: 'POST', headers: { 'Content-Type': 'application/json', Cookie: login.headers.get('set-cookie').split(';')[0] }, body: JSON.stringify({ attendeeId: person.id }) });
+  const participantCookie = registration.headers.get('set-cookie').split(';')[0];
+  const staffCookie = login.headers.get('set-cookie').split(';')[0];
+  const post = (route, cookie, body) => fetch(server.url + route, { method: 'POST', headers: { 'Content-Type': 'application/json', Cookie: cookie }, body: JSON.stringify(body || {}) });
+  assert.equal((await post('/api/admin/game/start', staffCookie)).status, 200);
+  assert.equal((await post('/api/participant/answer', participantCookie, { answerIndex: 1 })).status, 200);
+  assert.equal((await post('/api/admin/game/finish', staffCookie)).status, 200);
+  const spin = await post('/api/admin/wheel/spin', staffCookie, { attendeeId: person.id });
   assert.equal(spin.status, 200);
   assert.equal(fs.existsSync(directory + '/store.json'), true);
 });

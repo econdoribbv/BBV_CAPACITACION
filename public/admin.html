@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#241A31">
   <title>Panel de control | Conecta & Participa</title>
-  <link rel="stylesheet" href="/styles.css?v=20261105"><link rel="stylesheet" href="/experience.css?v=20261105-max2">
+  <link rel="stylesheet" href="/styles.css?v=20261110"><link rel="stylesheet" href="/experience.css?v=20261110">
 </head>
 <body>
   <div class="admin-layout">
@@ -39,15 +39,16 @@
         </div>
         <div class="grid-2">
           <article class="panel">
-            <div class="panel-header"><div><h2>Registro por QR</h2><p>Proyecta o imprime este código.</p></div></div>
-            <div class="qr-wrap"><img id="qrImage" alt="Código QR de registro"><div><h3>Escanea y regístrate</h3><p style="color:var(--muted);font-size:13px;line-height:1.55">Al escanear, los estudiantes completarán sus datos e ingresarán directamente al cuestionario.</p><div class="qr-url" id="qrUrl">Cargando…</div><button class="btn btn-light btn-sm" id="downloadQr" type="button">Descargar QR</button></div></div>
+            <div class="panel-header"><div><h2>Registro por QR</h2><p>Proyéctalo en pantalla para que los estudiantes lo escaneen.</p></div></div>
+            <div class="qr-wrap"><img id="qrImage" alt="Código QR de registro"><div><h3>Escanea y regístrate</h3><p style="color:var(--muted);font-size:13px;line-height:1.55">Al escanear, los estudiantes completarán sus datos e ingresarán directamente al cuestionario.</p><div class="qr-url" id="qrUrl">Cargando…</div><div class="control-row" style="margin-top:12px"><a class="btn btn-green btn-sm" href="/qr.html" target="_blank">▣ Proyectar QR</a><button class="btn btn-ghost btn-sm" id="downloadQr" type="button">Descargar imagen</button></div></div></div>
           </article>
           <article class="panel">
-            <div class="panel-header"><div><h2>Sala del cuestionario</h2><p>Código visible para los participantes.</p></div><span class="status-pill" id="gameStatus">Sala</span></div>
+            <div class="panel-header"><div><h2>Sala del cuestionario</h2><p id="dashboardRoundInfo">Juego actual.</p></div><span class="status-pill" id="gameStatus">Sala</span></div>
             <div class="game-code-display"><small>Código de sala</small><strong id="dashboardCode">------</strong></div>
-            <div class="control-row"><button class="btn btn-green btn-sm" data-game-action="start">Iniciar juego</button><button class="btn btn-light btn-sm" data-game-action="new-code">Nuevo código</button><a class="btn btn-ghost btn-sm" href="/projector.html" target="_blank">Proyectar</a></div>
+            <div class="control-row"><button class="btn btn-green btn-sm" data-game-action="start">Iniciar juego</button><button class="btn btn-light btn-sm" data-game-action="new-round">Nuevo juego</button><a class="btn btn-ghost btn-sm" href="/projector.html" target="_blank">Proyectar</a></div>
           </article>
         </div>
+        <article class="panel" style="margin-top:18px"><div class="panel-header"><div><h2>Inventario de premios</h2><p>Solo visible para organizadores; la ruleta proyectada no muestra cantidades.</p></div></div><div class="prize-stock" id="prizeStock"></div></article>
         <div class="grid-2">
           <article class="panel"><div class="panel-header"><div><h2>Últimos registros</h2><p>Participantes recién conectados.</p></div><a href="#participantes" class="btn btn-light btn-sm" data-go="participantes">Ver todos</a></div><div id="recentAttendees"></div></article>
           <article class="panel"><div class="panel-header"><div><h2>Clasificación</h2><p>Puntaje actual del cuestionario.</p></div></div><div class="leader-list" id="summaryLeaders"></div></article>
@@ -56,23 +57,24 @@
 
       <section class="admin-section" id="section-participantes">
         <article class="panel">
-          <div class="panel-header report-header"><div><h2>Personas registradas</h2><p>Descarga todos los registros, incluso si aplicaste una búsqueda.</p></div><div class="report-actions"><input class="search" id="participantSearch" aria-label="Buscar nombre o correo" placeholder="Buscar nombre o correo"><button type="button" class="btn btn-green btn-sm" id="exportCsv">↓ Descargar informe CSV</button><button type="button" class="btn btn-light btn-sm" id="exportBackup">↓ Respaldo completo</button></div></div>
-          <div class="table-wrap"><table><thead><tr><th>Nombre</th><th>Correo</th><th>Género</th><th>Edad</th><th>Premio</th><th>Registro</th></tr></thead><tbody id="attendeeTable"></tbody></table></div>
+          <div class="panel-header report-header"><div><h2>Personas registradas</h2><p>Incluye a todas las personas de todos los juegos, incluso si aplicaste una búsqueda.</p></div><div class="report-actions"><input class="search" id="participantSearch" aria-label="Buscar nombre o correo" placeholder="Buscar nombre o correo"><button type="button" class="btn btn-green btn-sm" id="exportCsv">↓ Descargar informe CSV</button><button type="button" class="btn btn-light btn-sm" id="exportBackup">↓ Respaldo completo</button></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Nombre</th><th>Correo</th><th>Género</th><th>Edad</th><th>Juego</th><th>Puntaje</th><th>Premio</th><th>Registro</th></tr></thead><tbody id="attendeeTable"></tbody></table></div>
         </article>
       </section>
 
       <section class="admin-section" id="section-juego">
         <div class="grid-2" style="margin-top:0">
           <article class="panel">
-            <div class="panel-header"><div><h2>Control del juego</h2><p>Los cambios aparecen en todas las pantallas.</p></div><span class="status-pill" id="controlStatus">Sala</span></div>
+            <div class="panel-header"><div><h2>Control del juego</h2><p id="controlRoundInfo">Las preguntas avanzan solas al terminar el tiempo.</p></div><span class="status-pill" id="controlStatus">Sala</span></div>
             <div class="game-code-display"><small>Código de sala</small><strong id="controlCode">------</strong></div>
             <div class="control-row">
-              <button class="btn btn-green" data-game-action="start">▶ Iniciar desde la primera</button>
-              <button class="btn btn-orange" data-game-action="reveal">✓ Mostrar respuesta</button>
-              <button class="btn" data-game-action="next">Siguiente →</button>
-              <button class="btn btn-light" data-game-action="finish">Finalizar</button>
-              <button class="btn btn-ghost" data-game-action="lobby">Volver a sala</button>
+              <button class="btn btn-green" data-game-action="start">▶ Iniciar juego</button>
+              <button class="btn btn-orange" data-game-action="reveal">✓ Cerrar pregunta ya</button>
+              <button class="btn" data-game-action="next">Saltar →</button>
+              <button class="btn btn-light" data-game-action="finish">■ Finalizar juego</button>
+              <button class="btn btn-ghost" data-game-action="new-round">＋ Nuevo juego</button>
             </div>
+            <p class="control-help" id="autoNote">El juego avanza solo: al terminar el tiempo se muestra la respuesta y luego pasa a la siguiente pregunta. Al finalizar, la proyección abre la ruleta con los 5 mejores puntajes.</p>
           </article>
           <article class="panel">
             <div class="panel-header"><div><h2>Pregunta activa</h2><p id="questionProgress">Ninguna pregunta activa.</p></div><strong id="answerCount">0 respuestas</strong></div>
@@ -92,6 +94,6 @@
     </main>
   </div>
   <div class="toast"></div>
-  <script type="module" src="/admin.js?v=20261105"></script>
+  <script type="module" src="/admin.js?v=20261110"></script>
 </body>
 </html>

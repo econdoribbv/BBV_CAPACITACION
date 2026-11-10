@@ -1,11 +1,12 @@
-import { api } from './common.js?v=20261105';
+import { api } from './common.js?v=20261110';
 
 async function refreshQr() {
   try {
     const [qr, state] = await Promise.all([api('/api/admin/qr'), api('/api/admin/state')]);
     document.querySelector('#qrProjectorImage').src = qr.dataUrl;
     document.querySelector('#qrProjectorUrl').textContent = qr.url;
-    document.querySelector('#qrRegistered').textContent = `${state.attendees.length} registrado${state.attendees.length === 1 ? '' : 's'}`;
+    const players = state.game.playerCount;
+    document.querySelector('#qrRegistered').textContent = `Juego ${state.game.number} · ${players} en sala`;
   } catch (error) {
     if (error.status === 401) location.href = '/login.html';
   }
@@ -13,3 +14,8 @@ async function refreshQr() {
 
 refreshQr();
 setInterval(refreshQr, 1800);
+
+document.querySelector('#qrFullscreen').addEventListener('click', async () => {
+  if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
+  else await document.exitFullscreen();
+});

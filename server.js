@@ -60,34 +60,61 @@ const DEFAULT_PRIZES = [
   { id: 'notebook-pen', name: 'Libreta con bolígrafo', initial: 20, remaining: 20, image: '/imagenes/libreta.png', color: '#EF99C1' }
 ];
 
+const MIN_PLAYERS = Math.max(1, Number(process.env.MIN_PLAYERS) || 3);
+const MAX_WINNERS = 5;
+const MAX_PLAYS_PER_EMAIL = 3;
+const RESULTS_MS = Math.max(2, Number(process.env.RESULTS_SECONDS) || 6) * 1000;
+const ANSWER_GRACE_MS = 800;
+
+function newRound(number) {
+  return {
+    id: crypto.randomUUID(),
+    number,
+    code: makeDigits(6),
+    status: 'lobby',
+    currentQuestionIndex: -1,
+    questionStartedAt: null,
+    resultsStartedAt: null,
+    revealed: false,
+    answers: [],
+    winners: [],
+    createdAt: new Date().toISOString(),
+    startedAt: null,
+    finishedAt: null,
+    updatedAt: new Date().toISOString()
+  };
+}
+
 function freshStore() {
   return {
     attendees: [],
     questions: DEFAULT_QUESTIONS,
     prizes: DEFAULT_PRIZES,
     spins: [],
-    game: {
-      code: makeDigits(6),
-      status: 'lobby',
-      currentQuestionIndex: -1,
-      questionStartedAt: null,
-      revealed: false,
-      answers: [],
-      updatedAt: new Date().toISOString()
-    }
+    rounds: [],
+    game: newRound(1)
   };
 }
 
 function normalizeStore(value) {
   const base = freshStore();
+  const rounds = Array.isArray(value?.rounds) ? value.rounds : [];
+  const game = { ...base.game, ...(value?.game || {}) };
+  if (!value?.game?.id) game.number = rounds.length + 1;
+  game.answers = Array.isArray(value?.game?.answers) ? value.game.answers : [];
+  game.winners = Array.isArray(value?.game?.winners) ? value.game.winners : [];
+  const attendees = (Array.isArray(value?.attendees) ? value.attendees : [])
+    // Registrations made before rounds existed belong to the game that was running.
+    .map((person) => (person.roundId === undefined ? { ...person, roundId: game.id } : person));
   return {
     ...base,
     ...value,
-    attendees: Array.isArray(value?.attendees) ? value.attendees : [],
+    attendees,
     questions: Array.isArray(value?.questions) && value.questions.length ? value.questions : base.questions,
     prizes: Array.isArray(value?.prizes) && value.prizes.length ? value.prizes : base.prizes,
     spins: Array.isArray(value?.spins) ? value.spins : [],
-    game: { ...base.game, ...(value?.game || {}), answers: Array.isArray(value?.game?.answers) ? value.game.answers : [] }
+    rounds,
+    game
   };
 }
 
@@ -109,8 +136,55 @@ function cleanText(value, max = 120) {
   return String(value || '').trim().replace(/\s+/g, ' ').slice(0, max);
 }
 
+function roundById(id) {
+  if (!id) return null;
+  if (store.game.id === id) return store.game;
+  return store.rounds.find((round) => round.id === id) || null;
+}
+
+function roundPlayers(round) {
+  return store.attendees.filter((person) => person.roundId === round.id);
+}
+
+function pendingPlayers() {
+  return store.attendees.filter((person) => !person.roundId);
+}
+
+// A registration is finished once its game ended; pending players (no game yet) are still active.
+function registrationFinished(person) {
+  if (!person.roundId) return false;
+  const round = roundById(person.roundId);
+  return !round || round.status === 'finished';
+}
+
+function playsUsed(email) {
+  return store.attendees.filter((person) => person.email === email).length;
+}
+
+function scoreBoard(round = store.game) {
+  return roundPlayers(round)
+    .map((person) => {
+      const personAnswers = round.answers.filter((answer) => answer.attendeeId === person.id);
+      return {
+        id: person.id,
+        name: person.name,
+        score: personAnswers.reduce((sum, answer) => sum + answer.points, 0),
+        correct: personAnswers.filter((answer) => answer.correct).length,
+        answered: personAnswers.length
+      };
+    })
+    .sort((a, b) => b.score - a.score || b.correct - a.correct || a.name.localeCompare(b.name, 'es'));
+}
+
+function personScore(person) {
+  const round = roundById(person.roundId);
+  if (!round) return 0;
+  return round.answers.filter((answer) => answer.attendeeId === person.id).reduce((sum, answer) => sum + answer.points, 0);
+}
+
 function publicAttendee(person) {
   if (!person) return null;
+  const round = roundById(person.roundId);
   return {
     id: person.id,
     name: person.name,
@@ -118,23 +192,26 @@ function publicAttendee(person) {
     gender: person.gender,
     ageRange: person.ageRange,
     createdAt: person.createdAt,
+    roundNumber: round?.number || null,
+    score: personScore(person),
+    active: !registrationFinished(person),
+    playsLeft: Math.max(0, MAX_PLAYS_PER_EMAIL - playsUsed(person.email)),
     prizeId: person.prizeId || null,
     prizeName: store.prizes.find((prize) => prize.id === person.prizeId)?.name || null
   };
 }
 
-function scoreBoard() {
-  return store.attendees
-    .map((person) => {
-      const personAnswers = store.game.answers.filter((answer) => answer.attendeeId === person.id);
-      return {
-        id: person.id,
-        name: person.name,
-        score: personAnswers.reduce((sum, answer) => sum + answer.points, 0),
-        correct: personAnswers.filter((answer) => answer.correct).length
-      };
-    })
-    .sort((a, b) => b.score - a.score || b.correct - a.correct || a.name.localeCompare(b.name, 'es'));
+// Winners still waiting for their spin, oldest game first, then by position.
+function winnerQueue() {
+  const queue = [];
+  for (const round of [...store.rounds, store.game]) {
+    if (round.status !== 'finished') continue;
+    for (const winner of round.winners || []) {
+      const person = store.attendees.find((item) => item.id === winner.attendeeId);
+      if (person && !person.prizeId) queue.push({ attendeeId: person.id, name: person.name, rank: winner.rank, score: winner.score, roundNumber: round.number });
+    }
+  }
+  return queue;
 }
 
 // Owner-requested reset for the complete staff roster. Old plaintext Render
@@ -212,6 +289,111 @@ function currentQuestion() {
   return store.questions[store.game.currentQuestionIndex] || null;
 }
 
+function questionEndsAt(game = store.game) {
+  const question = store.questions[game.currentQuestionIndex];
+  if (!question || !game.questionStartedAt) return null;
+  return new Date(game.questionStartedAt).getTime() + question.duration * 1000;
+}
+
+function resultsEndsAt(game = store.game) {
+  return game.resultsStartedAt ? new Date(game.resultsStartedAt).getTime() + RESULTS_MS : null;
+}
+
+function claimPendingPlayers(round) {
+  for (const person of pendingPlayers()) person.roundId = round.id;
+}
+
+function openNewRound() {
+  if (store.game.status !== 'finished' && store.game.status !== 'lobby') return false;
+  if (store.game.status === 'finished') {
+    store.rounds.push(store.game);
+    store.game = newRound(store.rounds.length + 1);
+  }
+  claimPendingPlayers(store.game);
+  return true;
+}
+
+function startQuestion(index, now = Date.now()) {
+  store.game.status = 'question';
+  store.game.currentQuestionIndex = index;
+  store.game.questionStartedAt = new Date(now).toISOString();
+  store.game.resultsStartedAt = null;
+  store.game.revealed = false;
+}
+
+function revealQuestion(now = Date.now()) {
+  store.game.status = 'results';
+  store.game.revealed = true;
+  store.game.resultsStartedAt = new Date(now).toISOString();
+}
+
+function finishRound(now = Date.now()) {
+  const game = store.game;
+  game.status = 'finished';
+  game.revealed = true;
+  game.resultsStartedAt = null;
+  game.finishedAt = new Date(now).toISOString();
+  // Only the best scores of this game go to the wheel; people who never answered are skipped.
+  game.winners = scoreBoard(game)
+    .filter((item) => item.answered > 0)
+    .slice(0, MAX_WINNERS)
+    .map((item, index) => ({ attendeeId: item.id, rank: index + 1, score: item.score }));
+}
+
+function goToNext(now = Date.now()) {
+  if (store.game.currentQuestionIndex + 1 >= store.questions.length) finishRound(now);
+  else startQuestion(store.game.currentQuestionIndex + 1, now);
+}
+
+// Time drives the game: questions close by themselves, results last a few seconds
+// and the next question (or the end of the game) follows without the host.
+function advanceGame(now = Date.now()) {
+  let changed = false;
+  for (let guard = 0; guard < 4; guard += 1) {
+    const game = store.game;
+    if (game.status === 'question') {
+      const endsAt = questionEndsAt(game);
+      if (endsAt === null) { finishRound(now); changed = true; break; }
+      const players = roundPlayers(game).length;
+      const answered = game.answers.filter((answer) => answer.questionIndex === game.currentQuestionIndex).length;
+      if (now >= endsAt + ANSWER_GRACE_MS || (players > 0 && answered >= players)) { revealQuestion(now); changed = true; }
+      break;
+    }
+    if (game.status === 'results' && now >= (resultsEndsAt(game) ?? now)) { goToNext(now); changed = true; continue; }
+    break;
+  }
+  if (changed) touchGame();
+}
+
+function safeAdvance() {
+  try { advanceGame(); } catch (error) { console.error(error); }
+}
+setInterval(safeAdvance, 250);
+
+function gameTiming(game = store.game) {
+  return {
+    serverNow: Date.now(),
+    questionEndsAt: game.status === 'question' ? questionEndsAt(game) : null,
+    resultsEndsAt: game.status === 'results' ? resultsEndsAt(game) : null
+  };
+}
+
+function distribution(question, answers) {
+  return question ? question.options.map((_, index) => answers.filter((answer) => answer.answerIndex === index).length) : [];
+}
+
+function winnerSummary(round) {
+  return (round?.winners || []).map((winner) => {
+    const person = store.attendees.find((item) => item.id === winner.attendeeId);
+    return { attendeeId: winner.attendeeId, name: person?.name || '—', rank: winner.rank, score: winner.score, prizeName: store.prizes.find((prize) => prize.id === person?.prizeId)?.name || null };
+  });
+}
+
+function lastFinishedRound() {
+  if (store.game.status === 'finished') return store.game;
+  return store.rounds[store.rounds.length - 1] || null;
+}
+
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
 app.get('/api/public', (req, res) => {
@@ -219,6 +401,7 @@ app.get('/api/public', (req, res) => {
     registrationOpen: storage.status.writable,
     gameStatus: store.game.status,
     registered: store.attendees.length,
+    maxPlays: MAX_PLAYS_PER_EMAIL,
     participant: publicAttendee(store.attendees.find((person) => person.id === req.session.participantId))
   });
 });
@@ -241,9 +424,18 @@ app.post('/api/register', (req, res) => {
   if (!allowedGenders.includes(gender)) return res.status(400).json({ error: 'Selecciona una opción de género.' });
   if (!allowedAges.includes(ageRange)) return res.status(400).json({ error: 'Selecciona tu rango de edad.' });
 
-  const existing = store.attendees.find((person) => person.email === email);
-  if (existing) {
-    return res.status(409).json({ error: 'Este correo ya fue registrado. Solicita ayuda al equipo organizador.' });
+  const previous = store.attendees.filter((person) => person.email === email);
+  const active = previous.find((person) => !registrationFinished(person));
+  if (active) {
+    // Scanning again (or from another browser) returns to the same game instead of adding a duplicate.
+    if (req.session.participantId === active.id || active.name.toLowerCase() === name.toLowerCase()) {
+      req.session.participantId = active.id;
+      return res.status(200).json({ attendee: publicAttendee(active), resumed: true });
+    }
+    return res.status(409).json({ error: 'Este correo ya está inscrito en el juego actual.' });
+  }
+  if (previous.length >= MAX_PLAYS_PER_EMAIL) {
+    return res.status(409).json({ error: `Este correo ya participó ${MAX_PLAYS_PER_EMAIL} veces, el máximo permitido.` });
   }
 
   const person = {
@@ -253,6 +445,8 @@ app.post('/api/register', (req, res) => {
     gender,
     ageRange,
     createdAt: new Date().toISOString(),
+    // Joins the game waiting in the lobby; if one is running, waits for the next one.
+    roundId: store.game.status === 'lobby' ? store.game.id : null,
     prizeId: null
   };
   store.attendees.push(person);
@@ -262,57 +456,71 @@ app.post('/api/register', (req, res) => {
 });
 
 app.get('/api/participant/state', requireParticipant, (req, res) => {
+  safeAdvance();
+  const person = req.participant;
+  const round = roundById(person.roundId);
+  const attendee = publicAttendee(person);
+  if (!round) return res.json({ attendee, game: { status: 'waiting-next', score: 0 } });
+  if (round !== store.game || round.status === 'finished') {
+    return res.json({ attendee, game: { status: 'finished', roundNumber: round.number, score: attendee.score, isWinner: (round.winners || []).some((winner) => winner.attendeeId === person.id) } });
+  }
+  const game = store.game;
   const question = currentQuestion();
-  const answer = store.game.answers.find((item) => item.attendeeId === req.participant.id && item.questionIndex === store.game.currentQuestionIndex);
-  const rank = scoreBoard().findIndex((item) => item.id === req.participant.id) + 1;
-  const personScore = scoreBoard().find((item) => item.id === req.participant.id)?.score || 0;
+  const answer = game.answers.find((item) => item.attendeeId === person.id && item.questionIndex === game.currentQuestionIndex);
   res.json({
-    attendee: publicAttendee(req.participant),
+    attendee,
     game: {
-      code: store.game.code,
-      status: store.game.status,
-      questionIndex: store.game.currentQuestionIndex,
-      questionNumber: store.game.currentQuestionIndex + 1,
+      roundNumber: game.number,
+      status: game.status,
+      questionIndex: game.currentQuestionIndex,
+      questionNumber: game.currentQuestionIndex + 1,
       questionCount: store.questions.length,
-      questionStartedAt: store.game.questionStartedAt,
-      revealed: store.game.revealed,
-      question: question && ['question', 'results'].includes(store.game.status) ? {
+      questionStartedAt: game.questionStartedAt,
+      ...gameTiming(game),
+      revealed: game.revealed,
+      question: question && ['question', 'results'].includes(game.status) ? {
         text: question.text,
         options: question.options,
         duration: question.duration
       } : null,
-      result: store.game.revealed && answer ? { correct: answer.correct, points: answer.points, correctIndex: question?.correctIndex } : null,
+      result: game.revealed && answer ? { correct: answer.correct, points: answer.points, correctIndex: question?.correctIndex } : null,
+      correctIndex: game.revealed ? question?.correctIndex ?? null : null,
       answered: Boolean(answer),
       selectedIndex: answer?.answerIndex ?? null,
-      score: personScore,
-      rank
+      score: attendee.score
     }
   });
 });
 
 app.post('/api/participant/answer', requireParticipant, (req, res) => {
-  if (store.game.status !== 'question' || store.game.revealed) return res.status(409).json({ error: 'La pregunta no está recibiendo respuestas.' });
+  safeAdvance();
+  const game = store.game;
+  if (req.participant.roundId !== game.id) return res.status(409).json({ error: 'Todavía no estás en este juego. Espera el siguiente.' });
+  if (game.status !== 'question' || game.revealed) return res.status(409).json({ error: 'El tiempo terminó: la pregunta ya no recibe respuestas.' });
   const question = currentQuestion();
   const answerIndex = Number(req.body.answerIndex);
   if (!question || !Number.isInteger(answerIndex) || answerIndex < 0 || answerIndex >= question.options.length) {
     return res.status(400).json({ error: 'Respuesta inválida.' });
   }
-  const alreadyAnswered = store.game.answers.some((answer) => answer.attendeeId === req.participant.id && answer.questionIndex === store.game.currentQuestionIndex);
+  const now = Date.now();
+  if (now > questionEndsAt(game) + ANSWER_GRACE_MS) return res.status(409).json({ error: 'El tiempo terminó: la pregunta ya no recibe respuestas.' });
+  const alreadyAnswered = game.answers.some((answer) => answer.attendeeId === req.participant.id && answer.questionIndex === game.currentQuestionIndex);
   if (alreadyAnswered) return res.status(409).json({ error: 'Ya respondiste esta pregunta.' });
 
-  const elapsed = Math.max(0, Date.now() - new Date(store.game.questionStartedAt).getTime());
+  const elapsed = Math.max(0, now - new Date(game.questionStartedAt).getTime());
   const correct = answerIndex === question.correctIndex;
   const speedBonus = Math.max(0, 500 - Math.round((elapsed / (question.duration * 1000)) * 500));
   const points = correct ? 500 + speedBonus : 0;
-  store.game.answers.push({
+  game.answers.push({
     attendeeId: req.participant.id,
-    questionIndex: store.game.currentQuestionIndex,
+    questionIndex: game.currentQuestionIndex,
     answerIndex,
     correct,
     points,
-    answeredAt: new Date().toISOString()
+    answeredAt: new Date(now).toISOString()
   });
   saveStore();
+  safeAdvance();
   res.json({ ok: true, selectedIndex: answerIndex });
 });
 
@@ -344,51 +552,71 @@ app.post('/api/auth/logout', requireStaff, (req, res) => {
 });
 
 app.get('/api/admin/state', requireStaff, (req, res) => {
+  safeAdvance();
   const question = currentQuestion();
   const currentAnswers = store.game.answers.filter((answer) => answer.questionIndex === store.game.currentQuestionIndex);
   res.json({
     user: req.session.staffUser,
     storage: storage.status,
+    minPlayers: MIN_PLAYERS,
     attendees: store.attendees.map(publicAttendee).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
     questions: store.questions,
     prizes: store.prizes,
     spins: store.spins.slice(-50).reverse(),
     spinCount: store.spins.length,
+    roundsPlayed: store.rounds.length + (store.game.status === 'finished' ? 1 : 0),
+    pendingWinners: winnerQueue().length,
     game: {
       ...store.game,
+      ...gameTiming(),
+      playerCount: roundPlayers(store.game).length,
+      waitingCount: pendingPlayers().length,
       currentQuestion: question,
       answerCount: currentAnswers.length,
-      distribution: question ? question.options.map((_, index) => currentAnswers.filter((answer) => answer.answerIndex === index).length) : [],
-      leaderboard: scoreBoard().slice(0, 20)
+      distribution: distribution(question, currentAnswers),
+      leaderboard: scoreBoard().slice(0, 20),
+      winners: winnerSummary(store.game)
     }
   });
 });
 
 app.get('/api/projector/state', requireStaff, (req, res) => {
+  safeAdvance();
   const question = currentQuestion();
   const currentAnswers = store.game.answers.filter((answer) => answer.questionIndex === store.game.currentQuestionIndex);
   res.json({
-    registered: store.attendees.length,
+    registered: roundPlayers(store.game).length,
+    minPlayers: MIN_PLAYERS,
+    pendingWinners: winnerQueue().length,
     game: {
+      id: store.game.id,
+      roundNumber: store.game.number,
       code: store.game.code,
       status: store.game.status,
       questionNumber: store.game.currentQuestionIndex + 1,
       questionCount: store.questions.length,
       questionStartedAt: store.game.questionStartedAt,
+      ...gameTiming(),
       revealed: store.game.revealed,
       question,
       answerCount: currentAnswers.length,
-      distribution: question ? question.options.map((_, index) => currentAnswers.filter((answer) => answer.answerIndex === index).length) : [],
-      leaderboard: scoreBoard().slice(0, 8)
+      distribution: distribution(question, currentAnswers),
+      winners: store.game.status === 'finished' ? winnerSummary(store.game) : []
     }
   });
 });
 
 app.get('/api/wheel/state', requireStaff, (req, res) => {
+  safeAdvance();
+  const recent = lastFinishedRound();
   res.json({
     user: req.session.staffUser,
-    attendees: store.attendees.map(publicAttendee).sort((a, b) => a.name.localeCompare(b.name, 'es')),
-    prizes: store.prizes,
+    // The wheel is projected: it never exposes how many prizes remain.
+    prizes: store.prizes.map(({ id, name, image, color }) => ({ id, name, image, color })),
+    prizesAvailable: store.prizes.some((prize) => prize.remaining > 0),
+    queue: winnerQueue(),
+    recentRound: recent ? { id: recent.id, number: recent.number, winners: winnerSummary(recent) } : null,
+    game: { id: store.game.id, status: store.game.status, roundNumber: store.game.number },
     spins: store.spins.slice(-50).reverse(),
     spinCount: store.spins.length
   });
@@ -406,64 +634,49 @@ app.get('/api/admin/qr', requireStaff, async (req, res, next) => {
   }
 });
 
-app.post('/api/admin/game/lobby', requireStaff, (_req, res) => {
-  store.game.status = 'lobby';
-  store.game.currentQuestionIndex = -1;
-  store.game.questionStartedAt = null;
-  store.game.revealed = false;
+// Opens a new game so people who arrive later can play. Finished games stay in the history.
+app.post('/api/admin/game/new-round', requireStaff, (_req, res) => {
+  if (!openNewRound()) return res.status(409).json({ error: 'Finaliza el juego en curso antes de abrir uno nuevo.' });
   touchGame();
-  res.json({ ok: true });
+  res.json({ ok: true, roundNumber: store.game.number });
 });
 
 app.post('/api/admin/game/start', requireStaff, (_req, res) => {
   if (!store.questions.length) return res.status(409).json({ error: 'Agrega al menos una pregunta.' });
-  store.game.status = 'question';
-  store.game.currentQuestionIndex = 0;
-  store.game.questionStartedAt = new Date().toISOString();
-  store.game.revealed = false;
+  if (store.game.status === 'finished' || store.game.status === 'lobby') openNewRound();
+  else claimPendingPlayers(store.game);
+  const players = roundPlayers(store.game).length;
+  if (players < MIN_PLAYERS) {
+    touchGame();
+    return res.status(409).json({ error: `Se necesitan al menos ${MIN_PLAYERS} participantes registrados para iniciar (hay ${players}).` });
+  }
   store.game.answers = [];
+  store.game.winners = [];
+  store.game.startedAt = new Date().toISOString();
+  startQuestion(0);
   touchGame();
   res.json({ ok: true });
 });
 
 app.post('/api/admin/game/reveal', requireStaff, (_req, res) => {
   if (store.game.status !== 'question') return res.status(409).json({ error: 'No hay una pregunta activa.' });
-  store.game.revealed = true;
-  store.game.status = 'results';
+  revealQuestion();
   touchGame();
   res.json({ ok: true });
 });
 
 app.post('/api/admin/game/next', requireStaff, (_req, res) => {
-  if (store.game.currentQuestionIndex + 1 >= store.questions.length) {
-    store.game.status = 'finished';
-    store.game.revealed = true;
-  } else {
-    store.game.currentQuestionIndex += 1;
-    store.game.status = 'question';
-    store.game.questionStartedAt = new Date().toISOString();
-    store.game.revealed = false;
-  }
+  if (!['question', 'results'].includes(store.game.status)) return res.status(409).json({ error: 'No hay un juego en curso.' });
+  goToNext();
   touchGame();
   res.json({ ok: true });
 });
 
 app.post('/api/admin/game/finish', requireStaff, (_req, res) => {
-  store.game.status = 'finished';
-  store.game.revealed = true;
+  if (!['question', 'results'].includes(store.game.status)) return res.status(409).json({ error: 'No hay un juego en curso.' });
+  finishRound();
   touchGame();
   res.json({ ok: true });
-});
-
-app.post('/api/admin/game/new-code', requireStaff, (_req, res) => {
-  store.game.code = makeDigits(6);
-  store.game.status = 'lobby';
-  store.game.currentQuestionIndex = -1;
-  store.game.questionStartedAt = null;
-  store.game.revealed = false;
-  store.game.answers = [];
-  touchGame();
-  res.json({ code: store.game.code });
 });
 
 app.put('/api/admin/questions', requireStaff, (req, res) => {
@@ -481,18 +694,25 @@ app.put('/api/admin/questions', requireStaff, (req, res) => {
     questions.push({ id: cleanText(item.id, 50) || crypto.randomUUID(), text, options, correctIndex, duration });
   }
   store.questions = questions;
-  store.game.status = 'lobby';
-  store.game.currentQuestionIndex = -1;
-  store.game.answers = [];
+  // A game in progress restarts in the lobby; finished games keep their results.
+  if (['question', 'results'].includes(store.game.status)) {
+    store.game.status = 'lobby';
+    store.game.currentQuestionIndex = -1;
+    store.game.questionStartedAt = null;
+    store.game.resultsStartedAt = null;
+    store.game.revealed = false;
+    store.game.answers = [];
+  }
   touchGame();
   res.json({ questions: store.questions });
 });
 
 app.post('/api/admin/wheel/spin', requireStaff, (req, res) => {
-  const attendeeId = cleanText(req.body.attendeeId, 60);
-  const attendee = store.attendees.find((person) => person.id === attendeeId);
-  if (!attendee) return res.status(404).json({ error: 'Selecciona un participante registrado.' });
-  if (attendee.prizeId) return res.status(409).json({ error: 'Este participante ya recibió un premio.' });
+  const expected = cleanText(req.body.attendeeId, 60);
+  const next = winnerQueue()[0];
+  if (!next) return res.status(409).json({ error: 'No hay ganadores pendientes de sorteo.' });
+  if (expected && expected !== next.attendeeId) return res.status(409).json({ error: 'La lista de ganadores cambió. La ruleta se actualizó.' });
+  const attendee = store.attendees.find((person) => person.id === next.attendeeId);
   const available = store.prizes.filter((prize) => prize.remaining > 0);
   const total = available.reduce((sum, prize) => sum + prize.remaining, 0);
   if (!total) return res.status(409).json({ error: 'Se agotaron todos los premios.' });
@@ -512,6 +732,8 @@ app.post('/api/admin/wheel/spin', requireStaff, (req, res) => {
     id: crypto.randomUUID(),
     attendeeId: attendee.id,
     attendeeName: attendee.name,
+    roundNumber: next.roundNumber,
+    rank: next.rank,
     prizeId: selected.id,
     prizeName: selected.name,
     createdAt: new Date().toISOString(),
@@ -519,7 +741,8 @@ app.post('/api/admin/wheel/spin', requireStaff, (req, res) => {
   };
   store.spins.push(spin);
   saveStore();
-  res.json({ spin, prize: selected, attendee: publicAttendee(attendee) });
+  const { remaining, initial, ...prize } = selected;
+  res.json({ spin, prize, attendee: publicAttendee(attendee) });
 });
 
 app.post('/api/admin/wheel/undo', requireStaff, (req, res) => {
@@ -541,11 +764,17 @@ app.get('/api/admin/export.csv', requireStaff, (_req, res) => {
     if (/^[\s]*[=+@-]/.test(text)) text = `'${text}`;
     return `"${text.replace(/"/g, '""')}"`;
   };
-  const rows = [['Nombre', 'Correo', 'Género', 'Edad', 'Premio', 'Fecha']];
-  for (const person of store.attendees) {
-    rows.push([person.name, person.email, person.gender, person.ageRange, store.prizes.find((prize) => prize.id === person.prizeId)?.name || '', person.createdAt]);
+  const positions = new Map();
+  for (const round of [...store.rounds, store.game]) {
+    if (round.status === 'lobby') continue;
+    scoreBoard(round).forEach((item, index) => positions.set(item.id, index + 1));
   }
-  const csv = `\uFEFF${rows.map((row) => row.map(escape).join(',')).join('\r\n')}`;
+  const rows = [['Nombre', 'Correo', 'Género', 'Edad', 'Juego', 'Puntaje', 'Posición', 'Premio', 'Fecha']];
+  for (const person of store.attendees) {
+    const round = roundById(person.roundId);
+    rows.push([person.name, person.email, person.gender, person.ageRange, round?.number || 'En espera', round ? personScore(person) : '', positions.get(person.id) || '', store.prizes.find((prize) => prize.id === person.prizeId)?.name || '', person.createdAt]);
+  }
+  const csv = `﻿${rows.map((row) => row.map(escape).join(',')).join('\r\n')}`;
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', `attachment; filename="participantes-bbv-${new Date().toISOString().slice(0, 10)}.csv"`);
   res.send(csv);

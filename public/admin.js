@@ -1,4 +1,4 @@
-import { api, toast, escapeHtml, formatDate, downloadReport } from './common.js?v=20261105';
+import { api, toast, escapeHtml, formatDate, downloadReport } from './common.js?v=20261110';
 
 let state;
 let localQuestions = [];
@@ -9,7 +9,7 @@ const titles = {
   juego: ['Cuestionario en vivo', 'Controla la experiencia que verá el público.'],
   preguntas: ['Preguntas', 'Prepara el contenido antes de iniciar el juego.']
 };
-const statusNames = { lobby: 'En sala', question: 'Pregunta activa', results: 'Resultados', finished: 'Finalizado' };
+const statusNames = { lobby: 'En sala', question: 'Pregunta activa', results: 'Mostrando respuesta', finished: 'Finalizado' };
 
 function showSection(name) {
   document.querySelectorAll('.admin-section').forEach((section) => section.classList.toggle('active', section.id === `section-${name}`));
@@ -19,9 +19,9 @@ function showSection(name) {
   history.replaceState(null, '', `#${name}`);
 }
 
-function attendeeRows(attendees) {
-  if (!attendees.length) return '<tr><td colspan="6" class="empty">Aún no hay participantes registrados.</td></tr>';
-  return attendees.map((person) => `<tr><td><strong>${escapeHtml(person.name)}</strong></td><td>${escapeHtml(person.email)}</td><td>${escapeHtml(person.gender)}</td><td>${escapeHtml(person.ageRange)}</td><td>${escapeHtml(person.prizeName || '—')}</td><td>${formatDate(person.createdAt)}</td></tr>`).join('');
+function attendeeRows(attendees, columns = 8) {
+  if (!attendees.length) return `<tr><td colspan="${columns}" class="empty">Aún no hay participantes registrados.</td></tr>`;
+  return attendees.map((person) => `<tr><td><strong>${escapeHtml(person.name)}</strong></td><td>${escapeHtml(person.email)}</td><td>${escapeHtml(person.gender)}</td><td>${escapeHtml(person.ageRange)}</td>${columns > 6 ? `<td>${person.roundNumber ? `N° ${person.roundNumber}` : 'En espera'}</td><td>${person.score}</td>` : ''}<td>${escapeHtml(person.prizeName || '—')}</td><td>${formatDate(person.createdAt)}</td></tr>`).join('');
 }
 
 function leaderList(leaders, limit = 20) {
@@ -85,12 +85,26 @@ function render(data) {
   document.querySelector('#controlCode').textContent = data.game.code;
   document.querySelector('#gameStatus').textContent = statusNames[data.game.status] || data.game.status;
   document.querySelector('#controlStatus').textContent = statusNames[data.game.status] || data.game.status;
-  document.querySelector('#recentAttendees').innerHTML = `<div class="table-wrap"><table><tbody>${attendeeRows(data.attendees.slice(0, 5))}</tbody></table></div>`;
+  const game = data.game;
+  const missing = Math.max(0, data.minPlayers - game.playerCount);
+  const waiting = game.waitingCount ? ` · ${game.waitingCount} esperando el siguiente juego` : '';
+  const roundInfo = game.status === 'lobby'
+    ? `Juego ${game.number} · ${game.playerCount} en sala${missing ? ` · falta${missing === 1 ? '' : 'n'} ${missing} para iniciar (mínimo ${data.minPlayers})` : ' · listo para iniciar'}${waiting}`
+    : game.status === 'finished'
+      ? `Juego ${game.number} finalizado · ${game.winners.length} pasan a la ruleta${data.pendingWinners ? ` · ${data.pendingWinners} premios por sortear` : ''}${waiting}. Pulsa “Nuevo juego” o “Iniciar juego” para el siguiente.`
+      : `Juego ${game.number} en curso · ${game.playerCount} jugadores${waiting}`;
+  document.querySelector('#controlRoundInfo').textContent = roundInfo;
+  document.querySelector('#dashboardRoundInfo').textContent = roundInfo;
+  document.querySelector('#prizeStock').innerHTML = data.prizes.map((prize) => `<div class="prize-stock-item"><img src="${prize.image}" alt=""><span><strong>${escapeHtml(prize.name)}: ${prize.remaining}</strong><small>${prize.initial - prize.remaining} entregados de ${prize.initial}</small></span></div>`).join('');
+  document.querySelector('#recentAttendees').innerHTML = `<div class="table-wrap"><table><tbody>${attendeeRows(data.attendees.slice(0, 5), 6)}</tbody></table></div>`;
   renderFilteredAttendees();
   document.querySelector('#summaryLeaders').innerHTML = leaderList(data.game.leaderboard, 5);
   document.querySelector('#fullLeaders').innerHTML = leaderList(data.game.leaderboard);
   document.querySelector('#answerCount').textContent = `${data.game.answerCount} respuesta${data.game.answerCount === 1 ? '' : 's'}`;
-  document.querySelector('#questionProgress').textContent = data.game.currentQuestion ? `Pregunta ${data.game.currentQuestionIndex + 1} de ${data.questions.length}` : 'Ninguna pregunta activa.';
+  const left = (end) => Math.max(0, Math.ceil((end - data.game.serverNow) / 1000));
+  document.querySelector('#questionProgress').textContent = data.game.currentQuestion && ['question', 'results'].includes(data.game.status)
+    ? `Pregunta ${data.game.currentQuestionIndex + 1} de ${data.questions.length} · ${data.game.status === 'question' ? `quedan ${left(data.game.questionEndsAt)} s` : `siguiente en ${left(data.game.resultsEndsAt)} s`}`
+    : 'Ninguna pregunta activa.';
   renderActiveQuestion(data.game);
   if (!questionEditing) {
     localQuestions = structuredClone(data.questions);
@@ -126,11 +140,13 @@ document.querySelectorAll('[data-go]').forEach((link) => link.addEventListener('
 
 document.querySelectorAll('[data-game-action]').forEach((button) => button.addEventListener('click', async () => {
   const action = button.dataset.gameAction;
-  if (action === 'start' && state?.game.status !== 'lobby' && !confirm('Esto reiniciará puntajes y comenzará desde la primera pregunta. ¿Continuar?')) return;
+  const running = ['question', 'results'].includes(state?.game.status);
+  if (action === 'start' && running && !confirm('Hay un juego en curso. Esto reiniciará sus puntajes y comenzará desde la primera pregunta. ¿Continuar?')) return;
+  if (action === 'finish' && !confirm('¿Finalizar el juego ahora? Los 5 mejores puntajes pasarán a la ruleta.')) return;
   button.disabled = true;
   try {
     await api(`/api/admin/game/${action}`, { method: 'POST' });
-    toast(action === 'new-code' ? 'Se generó un nuevo código de sala.' : 'Control actualizado.', 'success');
+    toast(action === 'new-round' ? 'Nuevo juego abierto: los participantes que llegan ya pueden unirse.' : 'Control actualizado.', 'success');
     await refresh();
   } catch (error) { toast(error.message, 'error'); }
   finally { button.disabled = false; }
