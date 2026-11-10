@@ -2,13 +2,13 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const { startServer, tempDirectory } = require('./helpers.cjs');
+const { startServer, tempDirectory, unzip } = require('./helpers.cjs');
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function client(server) {
   let cookie = '';
-  return async (route, method = 'GET', body) => {
+  const request = async (route, method = 'GET', body) => {
     const res = await fetch(server.url + route, {
       method, headers: { 'Content-Type': 'application/json', ...(cookie ? { Cookie: cookie } : {}) },
       body: body ? JSON.stringify(body) : undefined
@@ -18,6 +18,8 @@ function client(server) {
     const type = res.headers.get('content-type') || '';
     return { status: res.status, data: type.includes('json') ? await res.json() : await res.text() };
   };
+  request.cookie = () => cookie;
+  return request;
 }
 
 async function staffClient(server) {
@@ -88,7 +90,12 @@ test('a full game needs 3 players, advances by itself and sends the top scores t
   const finishedView = (await players[0]('/api/participant/state')).data;
   assert.equal(finishedView.game.status, 'finished');
   assert.equal(finishedView.game.rank, undefined);
-  assert.equal(finishedView.attendee.playsLeft, 2);
+  // Winners go to the wheel and can no longer play again.
+  assert.equal(finishedView.attendee.wonPrize, true);
+  assert.equal(finishedView.attendee.playsLeft, 0);
+  const blockedWinner = await register(server, 0);
+  assert.equal(blockedWinner.res.status, 409);
+  assert.match(blockedWinner.res.data.error, /ganó un premio/);
 
   const wheel = (await staff('/api/wheel/state')).data;
   assert.equal(wheel.queue.length, 3);
@@ -106,8 +113,17 @@ test('a full game needs 3 players, advances by itself and sends the top scores t
   assert.equal(lobby.game.roundNumber, 2);
 
   const csv = (await staff('/api/admin/export.csv')).data;
-  assert.match(csv, /"Juego","Puntaje","Posición"/);
+  assert.match(csv, /"Veces que jugó","Juegos","Mejor puntaje"/);
   for (let i = 0; i < 4; i += 1) assert.ok(csv.includes(`p${i}@example.test`));
+
+  const excel = await fetch(server.url + '/api/admin/export.xlsx', { headers: { Cookie: staff.cookie() } });
+  assert.equal(excel.status, 200);
+  assert.match(excel.headers.get('content-type'), /spreadsheetml\.sheet/);
+  assert.match(excel.headers.get('content-disposition'), /participantes-bbv-.*\.xlsx/);
+  const sheet = unzip(Buffer.from(await excel.arrayBuffer()))['xl/worksheets/sheet1.xml'];
+  assert.match(sheet, /Veces que jugó/);
+  for (let i = 0; i < 4; i += 1) assert.ok(sheet.includes(`p${i}@example.test`));
+  assert.equal(sheet.match(/<row /g).length, 5);
 });
 
 test('answers are rejected after the timer ends and the game moves on without the host', async (t) => {
@@ -129,21 +145,25 @@ test('answers are rejected after the timer ends and the game moves on without th
   assert.equal(state.game.questionNumber, 2);
 });
 
-test('the same email can play at most three games', async (t) => {
+test('each email registers only once; playing again needs another email', async (t) => {
   const directory = tempDirectory('plays-');
   const server = await startServer(directory, { MIN_PLAYERS: '1' });
   t.after(async () => { await server.stop(); fs.rmSync(directory, { recursive: true, force: true }); });
   const staff = await staffClient(server);
   const player = client(server);
   const body = { name: 'Persona Repetida', email: 'repite@example.test', gender: 'Femenino', ageRange: '26-36' };
-  for (let game = 1; game <= 3; game += 1) {
-    assert.equal((await player('/api/register', 'POST', body)).status, 201, `registro ${game}`);
-    assert.equal((await staff('/api/admin/game/start', 'POST')).status, 200);
-    assert.equal((await staff('/api/admin/game/finish', 'POST')).status, 200);
-  }
-  const fourth = await player('/api/register', 'POST', body);
-  assert.equal(fourth.status, 409);
-  assert.match(fourth.data.error, /3 veces/);
-  const backup = (await staff('/api/admin/backup.json')).data;
-  assert.equal(JSON.parse(typeof backup === 'string' ? backup : JSON.stringify(backup)).attendees.length, 3);
+  assert.equal((await player('/api/register', 'POST', body)).status, 201);
+  assert.equal((await staff('/api/admin/game/start', 'POST')).status, 200);
+  assert.equal((await staff('/api/admin/game/finish', 'POST')).status, 200);
+  // Lost without a prize: the same email is still refused.
+  const view = (await player('/api/participant/state')).data;
+  assert.equal(view.attendee.wonPrize, false);
+  assert.equal(view.attendee.playsLeft, 0);
+  const again = await player('/api/register', 'POST', body);
+  assert.equal(again.status, 409);
+  assert.match(again.data.error, /otro correo/);
+  assert.equal((await player('/api/register', 'POST', { ...body, email: 'otro@example.test' })).status, 201);
+  const list = (await staff('/api/admin/state')).data.attendees;
+  assert.equal(list.length, 2);
+  assert.ok(list.every((person) => person.plays === 1));
 });

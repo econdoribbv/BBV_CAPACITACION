@@ -1,4 +1,4 @@
-import { api } from './common.js?v=20261110';
+import { api } from './common.js?v=20261112';
 
 async function refreshQr() {
   try {

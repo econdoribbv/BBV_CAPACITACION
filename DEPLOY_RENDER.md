@@ -4,14 +4,14 @@ El registro y la ruleta funcionan sin contratar un disco. El bloqueo por falta d
 
 1. En el servicio existente, selecciona Manual Deploy → Deploy latest commit.
 2. Abre la página de participantes y registra una persona de prueba.
-3. Entra al panel con cualquiera de las cuatro cuentas y comprueba el registro, el CSV y la ruleta.
+3. Entra al panel con cualquiera de las cuatro cuentas y comprueba el registro, la descarga en Excel y la ruleta.
 
 ## Dónde se guardan los datos
 
 - Si existe un disco persistente montado y DATA_DIR apunta a él, se usa ese disco.
 - En Render Free, se usa data/store.json dentro del servidor. Se conserva la escritura atómica y la copia anterior store.json.bak.
 - Es almacenamiento temporal: Render puede eliminar esos archivos al reiniciar, suspender o desplegar. No se presenta como persistencia permanente.
-- Descarga el CSV y el respaldo completo JSON durante y al terminar el evento, antes de reiniciar o desplegar.
+- Descarga el Excel y el respaldo completo JSON durante y al terminar el evento, antes de reiniciar o desplegar.
 - Un archivo dañado no se reemplaza por una base vacía. Un fallo real de escritura sí bloquea cambios para no confirmar registros que no se guardaron.
 - Conservar datos entre despliegues requiere almacenamiento externo persistente; ese servicio puede tener una opción gratuita. Este cambio no configura ni contrata uno.
 

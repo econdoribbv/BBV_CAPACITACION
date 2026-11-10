@@ -12,7 +12,7 @@ Aplicación web para registrar estudiantes mediante QR, ejecutar un cuestionario
 - Editor de preguntas desde el panel.
 - Ruleta con los 5 mejores puntajes de cada juego: se abre sola al terminar, muestra el turno automáticamente y gira al tocar el centro.
 - Selección ponderada por existencias: al inicio, un bolígrafo tiene 150/280 de probabilidad; las probabilidades se ajustan automáticamente al inventario restante.
-- Exportación de participantes a CSV y respaldo completo en JSON, con manejo de sesión vencida.
+- Exportación de participantes a Excel y respaldo completo en JSON, con manejo de sesión vencida.
 - Guardado atómico con copia anterior; nunca sustituye archivos dañados por una base vacía.
 - Persistencia local en `data/store.json`; en Render Free utiliza archivos temporales; con un disco montado en `/var/data` conserva los datos entre despliegues.
 - Fondo animado en perspectiva, controles para pausar el movimiento y MAX, el toro animado original de Aula Bursátil, en la ruleta.
@@ -43,7 +43,7 @@ Todos usan los hashes de `staff-credentials.json`. Las claves se entregan al res
 
 Sigue [DEPLOY_RENDER.md](DEPLOY_RENDER.md) para actualizar el servicio existente.
 
-El registro y la ruleta están habilitados también en Render Free, sin disco de pago. En ese plan los archivos son temporales: descarga CSV y respaldo JSON antes de reiniciar o desplegar. Si existe un disco persistente configurado, el sistema lo utiliza. Las cuatro cuentas usan los hashes incluidos en el proyecto.
+El registro y la ruleta están habilitados también en Render Free, sin disco de pago. En ese plan los archivos son temporales: descarga el Excel y el respaldo JSON antes de reiniciar o desplegar. Si existe un disco persistente configurado, el sistema lo utiliza. Las cuatro cuentas usan los hashes incluidos en el proyecto.
 
 El panel identifica si el almacenamiento es temporal o persistente. Solo se bloquean cambios ante un fallo real de escritura, no por usar el plan gratuito.
 
@@ -57,10 +57,10 @@ El panel identifica si el almacenamiento es temporal o persistente. Solo se bloq
 6. Al terminar la última pregunta, o si el organizador pulsa **Finalizar juego**, la proyección muestra los 5 mejores puntajes y abre la ruleta automáticamente.
 7. En la ruleta aparece solo el nombre del siguiente ganador. El organizador toca el centro de la ruleta y se asigna el premio. La ruleta proyectada no muestra cantidades de premios; el inventario está en **Resumen** del panel.
 8. Para el siguiente grupo, pulsa **Nuevo juego** (o directamente **Iniciar juego**). Quienes llegaron durante el juego anterior se suman automáticamente.
-9. Cada correo puede jugar como máximo 3 veces. Al terminar su juego, el participante ve el botón **Jugar otra vez**.
+9. Cada correo se registra una sola vez. Quien pierde y quiere volver a jugar debe registrarse con otro correo; quien queda entre los ganadores ya no puede volver a jugar con ese correo.
 
-Los jugadores no ven su posición, solo su puntaje. El informe CSV incluye a todas las personas de todos los juegos, con número de juego, puntaje, posición y premio.
+Los jugadores no ven su posición, solo su puntaje. El informe en Excel tiene una fila por persona, con las veces que jugó, los juegos en que participó, su mejor puntaje y su premio.
 
 ## Copia de seguridad
 
-En Render el archivo activo es `/var/data/store.json`; `store.json.bak` conserva la versión anterior. Desde **Participantes** descarga el CSV y el respaldo JSON completo después de cada evento. No subas estos archivos a GitHub. Consulta el procedimiento de recuperación en [DEPLOY_RENDER.md](DEPLOY_RENDER.md).
+En Render el archivo activo es `/var/data/store.json`; `store.json.bak` conserva la versión anterior. Desde **Participantes** descarga el Excel y el respaldo JSON completo después de cada evento. No subas estos archivos a GitHub. Consulta el procedimiento de recuperación en [DEPLOY_RENDER.md](DEPLOY_RENDER.md).

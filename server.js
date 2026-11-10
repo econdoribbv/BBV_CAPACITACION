@@ -8,6 +8,7 @@ const QRCode = require('qrcode');
 const crypto = require('crypto');
 const path = require('path');
 const { openStorage } = require('./storage');
+const { buildXlsx } = require('./xlsx');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -62,7 +63,7 @@ const DEFAULT_PRIZES = [
 
 const MIN_PLAYERS = Math.max(1, Number(process.env.MIN_PLAYERS) || 3);
 const MAX_WINNERS = 5;
-const MAX_PLAYS_PER_EMAIL = 3;
+const MAX_PLAYS_PER_EMAIL = 1;
 const RESULTS_MS = Math.max(2, Number(process.env.RESULTS_SECONDS) || 6) * 1000;
 const ANSWER_GRACE_MS = 800;
 
@@ -103,9 +104,12 @@ function normalizeStore(value) {
   if (!value?.game?.id) game.number = rounds.length + 1;
   game.answers = Array.isArray(value?.game?.answers) ? value.game.answers : [];
   game.winners = Array.isArray(value?.game?.winners) ? value.game.winners : [];
-  const attendees = (Array.isArray(value?.attendees) ? value.attendees : [])
+  const attendees = (Array.isArray(value?.attendees) ? value.attendees : []).map((person) => {
     // Registrations made before rounds existed belong to the game that was running.
-    .map((person) => (person.roundId === undefined ? { ...person, roundId: game.id } : person));
+    const roundId = person.roundId === undefined ? game.id : person.roundId;
+    const roundIds = Array.isArray(person.roundIds) ? person.roundIds : (roundId ? [roundId] : []);
+    return { ...person, roundId, roundIds, plays: Number(person.plays) || 1 };
+  });
   return {
     ...base,
     ...value,
@@ -142,12 +146,25 @@ function roundById(id) {
   return store.rounds.find((round) => round.id === id) || null;
 }
 
+// Each email is one row: `roundIds` lists every game played and `roundId` the current one
+// (null while waiting for the next game to open).
 function roundPlayers(round) {
-  return store.attendees.filter((person) => person.roundId === round.id);
+  return store.attendees.filter((person) => person.roundIds.includes(round.id));
 }
 
 function pendingPlayers() {
   return store.attendees.filter((person) => !person.roundId);
+}
+
+function joinRound(person, round) {
+  person.roundId = round.id;
+  if (!person.roundIds.includes(round.id)) person.roundIds.push(round.id);
+}
+
+// Whoever received a prize, or is in line for the wheel, cannot play again.
+function hasWon(person) {
+  if (person.prizeId) return true;
+  return [...store.rounds, store.game].some((round) => round.status === 'finished' && (round.winners || []).some((winner) => winner.attendeeId === person.id));
 }
 
 // A registration is finished once its game ended; pending players (no game yet) are still active.
@@ -158,7 +175,7 @@ function registrationFinished(person) {
 }
 
 function playsUsed(email) {
-  return store.attendees.filter((person) => person.email === email).length;
+  return store.attendees.filter((person) => person.email === email).reduce((sum, person) => sum + person.plays, 0);
 }
 
 function scoreBoard(round = store.game) {
@@ -176,8 +193,7 @@ function scoreBoard(round = store.game) {
     .sort((a, b) => b.score - a.score || b.correct - a.correct || a.name.localeCompare(b.name, 'es'));
 }
 
-function personScore(person) {
-  const round = roundById(person.roundId);
+function personScore(person, round = roundById(person.roundId)) {
   if (!round) return 0;
   return round.answers.filter((answer) => answer.attendeeId === person.id).reduce((sum, answer) => sum + answer.points, 0);
 }
@@ -185,6 +201,8 @@ function personScore(person) {
 function publicAttendee(person) {
   if (!person) return null;
   const round = roundById(person.roundId);
+  const played = person.roundIds.map(roundById).filter(Boolean);
+  const won = hasWon(person);
   return {
     id: person.id,
     name: person.name,
@@ -193,9 +211,13 @@ function publicAttendee(person) {
     ageRange: person.ageRange,
     createdAt: person.createdAt,
     roundNumber: round?.number || null,
-    score: personScore(person),
+    games: played.map((item) => item.number),
+    plays: person.plays,
+    score: personScore(person, round),
+    bestScore: Math.max(0, ...played.map((item) => personScore(person, item))),
     active: !registrationFinished(person),
-    playsLeft: Math.max(0, MAX_PLAYS_PER_EMAIL - playsUsed(person.email)),
+    wonPrize: won,
+    playsLeft: won ? 0 : Math.max(0, MAX_PLAYS_PER_EMAIL - playsUsed(person.email)),
     prizeId: person.prizeId || null,
     prizeName: store.prizes.find((prize) => prize.id === person.prizeId)?.name || null
   };
@@ -300,7 +322,7 @@ function resultsEndsAt(game = store.game) {
 }
 
 function claimPendingPlayers(round) {
-  for (const person of pendingPlayers()) person.roundId = round.id;
+  for (const person of pendingPlayers()) joinRound(person, round);
 }
 
 function openNewRound() {
@@ -425,31 +447,32 @@ app.post('/api/register', (req, res) => {
   if (!allowedAges.includes(ageRange)) return res.status(400).json({ error: 'Selecciona tu rango de edad.' });
 
   const previous = store.attendees.filter((person) => person.email === email);
-  const active = previous.find((person) => !registrationFinished(person));
-  if (active) {
-    // Scanning again (or from another browser) returns to the same game instead of adding a duplicate.
-    if (req.session.participantId === active.id || active.name.toLowerCase() === name.toLowerCase()) {
-      req.session.participantId = active.id;
-      return res.status(200).json({ attendee: publicAttendee(active), resumed: true });
+  let person = previous[previous.length - 1];
+  if (person && !registrationFinished(person)) {
+    // Scanning again (or from another browser) returns to the same game.
+    if (req.session.participantId === person.id || person.name.toLowerCase() === name.toLowerCase()) {
+      req.session.participantId = person.id;
+      return res.status(200).json({ attendee: publicAttendee(person), resumed: true });
     }
     return res.status(409).json({ error: 'Este correo ya está inscrito en el juego actual.' });
   }
-  if (previous.length >= MAX_PLAYS_PER_EMAIL) {
-    return res.status(409).json({ error: `Este correo ya participó ${MAX_PLAYS_PER_EMAIL} veces, el máximo permitido.` });
+  if (previous.some(hasWon)) {
+    return res.status(409).json({ error: 'Este correo ya ganó un premio y no puede volver a jugar.' });
+  }
+  if (playsUsed(email) >= MAX_PLAYS_PER_EMAIL) {
+    return res.status(409).json({ error: 'Este correo ya fue registrado. Para volver a jugar, regístrate con otro correo.' });
   }
 
-  const person = {
-    id: crypto.randomUUID(),
-    name,
-    email,
-    gender,
-    ageRange,
-    createdAt: new Date().toISOString(),
-    // Joins the game waiting in the lobby; if one is running, waits for the next one.
-    roundId: store.game.status === 'lobby' ? store.game.id : null,
-    prizeId: null
-  };
-  store.attendees.push(person);
+  if (person) {
+    // Playing again keeps the same row in the list and only raises the counter.
+    person.plays += 1;
+    person.roundId = null;
+  } else {
+    person = { id: crypto.randomUUID(), name, email, gender, ageRange, createdAt: new Date().toISOString(), plays: 1, roundId: null, roundIds: [], prizeId: null };
+    store.attendees.push(person);
+  }
+  // Joins the game waiting in the lobby; if one is running, waits for the next one.
+  if (store.game.status === 'lobby') joinRound(person, store.game);
   saveStore();
   req.session.participantId = person.id;
   res.status(201).json({ attendee: publicAttendee(person) });
@@ -559,6 +582,7 @@ app.get('/api/admin/state', requireStaff, (req, res) => {
     user: req.session.staffUser,
     storage: storage.status,
     minPlayers: MIN_PLAYERS,
+    maxPlays: MAX_PLAYS_PER_EMAIL,
     attendees: store.attendees.map(publicAttendee).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
     questions: store.questions,
     prizes: store.prizes,
@@ -758,23 +782,32 @@ app.post('/api/admin/wheel/undo', requireStaff, (req, res) => {
   res.json({ ok: true });
 });
 
+// One row per person (email), with how many times they played.
+function reportRows(formatDate) {
+  const rows = [['Nombre', 'Correo', 'Género', 'Edad', 'Veces que jugó', 'Juegos', 'Mejor puntaje', 'Premio', 'Fecha de registro']];
+  for (const person of store.attendees) {
+    const info = publicAttendee(person);
+    rows.push([info.name, info.email, info.gender, info.ageRange, info.plays, info.games.join(', ') || 'En espera', info.bestScore, info.prizeName || '', formatDate(info.createdAt)]);
+  }
+  return rows;
+}
+
+const reportDate = new Intl.DateTimeFormat('es-BO', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/La_Paz' });
+
+app.get('/api/admin/export.xlsx', requireStaff, (_req, res) => {
+  const file = buildXlsx(reportRows((value) => reportDate.format(new Date(value))), { sheetName: 'Participantes', widths: [30, 34, 18, 10, 15, 12, 15, 24, 20] });
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename="participantes-bbv-${new Date().toISOString().slice(0, 10)}.xlsx"`);
+  res.send(file);
+});
+
 app.get('/api/admin/export.csv', requireStaff, (_req, res) => {
   const escape = (value) => {
     let text = String(value ?? '');
     if (/^[\s]*[=+@-]/.test(text)) text = `'${text}`;
     return `"${text.replace(/"/g, '""')}"`;
   };
-  const positions = new Map();
-  for (const round of [...store.rounds, store.game]) {
-    if (round.status === 'lobby') continue;
-    scoreBoard(round).forEach((item, index) => positions.set(item.id, index + 1));
-  }
-  const rows = [['Nombre', 'Correo', 'Género', 'Edad', 'Juego', 'Puntaje', 'Posición', 'Premio', 'Fecha']];
-  for (const person of store.attendees) {
-    const round = roundById(person.roundId);
-    rows.push([person.name, person.email, person.gender, person.ageRange, round?.number || 'En espera', round ? personScore(person) : '', positions.get(person.id) || '', store.prizes.find((prize) => prize.id === person.prizeId)?.name || '', person.createdAt]);
-  }
-  const csv = `﻿${rows.map((row) => row.map(escape).join(',')).join('\r\n')}`;
+  const csv = `﻿${reportRows((value) => value).map((row) => row.map(escape).join(',')).join('\r\n')}`;
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', `attachment; filename="participantes-bbv-${new Date().toISOString().slice(0, 10)}.csv"`);
   res.send(csv);

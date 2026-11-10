@@ -1,4 +1,4 @@
-import { api, escapeHtml } from './common.js?v=20261110';
+import { api, escapeHtml, confetti } from './common.js?v=20261112';
 
 const stage = document.querySelector('#projectorStage');
 const WHEEL_DELAY_MS = 7000;
@@ -8,6 +8,8 @@ let clockOffset = 0;
 let qrCode = null;
 let wheelTimer = null;
 let wheelFrame = null;
+let celebrated = null;
+let confettiTimer = null;
 const serverNow = () => Date.now() + clockOffset;
 
 async function loadQr() {
@@ -47,8 +49,23 @@ function renderFinished(data) {
   const winners = data.game.winners;
   const goesToWheel = data.pendingWinners > 0;
   stage.innerHTML = `<div class="result-stage"><div><span class="live-label"><span class="dot"></span> Juego ${data.game.roundNumber} finalizado</span><h1>¡Tenemos ganadores!</h1><p>${goesToWheel ? 'Los mejores puntajes pasan a la ruleta de premios. ¡Prepárense!' : 'Gracias a todos por participar. Muy pronto comienza el siguiente juego.'}</p></div><div class="projector-leaders"><h2>${winners.length ? 'Pasan a la ruleta' : 'Clasificación final'}</h2>${winners.length ? winners.map((person) => `<div class="projector-leader"><b>${person.rank}</b><span>${escapeHtml(person.name)}</span><b>${person.score} pts</b></div>`).join('') : '<p>Nadie respondió en este juego.</p>'}${goesToWheel ? '' : qrBlock()}</div></div>`;
+  if (winners.length) celebrate(data.game.id);
   // The wheel opens by itself once the final ranking has been on screen for a moment.
   if (goesToWheel && !wheelTimer && !wheelFrame) wheelTimer = setTimeout(openWheel, WHEEL_DELAY_MS);
+}
+
+// Confetti for the winners, once per game, until the wheel takes over the screen.
+function celebrate(gameId) {
+  if (celebrated === gameId) return;
+  celebrated = gameId;
+  let bursts = 1;
+  confetti();
+  clearInterval(confettiTimer);
+  confettiTimer = setInterval(() => {
+    if (bursts >= 4 || wheelFrame) return clearInterval(confettiTimer);
+    bursts += 1;
+    confetti();
+  }, 1600);
 }
 
 // The wheel opens on top of this page so a projector in full screen stays in full screen.

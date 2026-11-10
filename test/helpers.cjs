@@ -42,4 +42,17 @@ async function startServer(directory, overrides = {}) {
     }
   };
 }
-module.exports = { startServer, tempDirectory };
+// Reads the parts of a ZIP (such as an .xlsx file) written without data descriptors.
+function unzip(buffer) {
+  const files = {};
+  let offset = 0;
+  while (buffer.readUInt32LE(offset) === 0x04034b50) {
+    const size = buffer.readUInt32LE(offset + 18);
+    const start = offset + 30 + buffer.readUInt16LE(offset + 26) + buffer.readUInt16LE(offset + 28);
+    const name = buffer.toString('utf8', offset + 30, offset + 30 + buffer.readUInt16LE(offset + 26));
+    files[name] = require('node:zlib').inflateRawSync(buffer.subarray(start, start + size)).toString('utf8');
+    offset = start + size;
+  }
+  return files;
+}
+module.exports = { startServer, tempDirectory, unzip };

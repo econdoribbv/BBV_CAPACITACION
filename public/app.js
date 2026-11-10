@@ -1,4 +1,4 @@
-import { api, toast } from './common.js?v=20261110';
+import { api, toast } from './common.js?v=20261112';
 
 async function loadPublic() {
   try {
@@ -10,13 +10,12 @@ async function loadPublic() {
     const person = data.participant;
     if (person?.active) { location.href = '/participant.html'; return; }
     if (person) {
-      // Their game ended: offer another game with the same details, up to the allowed limit.
-      for (const field of ['name', 'email', 'gender', 'ageRange']) document.getElementById(field).value = person[field];
-      document.querySelector('#registerView h2').textContent = person.playsLeft > 0 ? '¿Juegas otra vez?' : 'Ya completaste tus participaciones';
-      document.querySelector('#registerView > p').textContent = person.playsLeft > 0
-        ? `Puedes jugar hasta ${data.maxPlays} veces. Te queda${person.playsLeft === 1 ? '' : 'n'} ${person.playsLeft}.`
-        : `Cada persona puede jugar hasta ${data.maxPlays} veces. ¡Gracias por participar!`;
-      if (person.playsLeft <= 0) submit.disabled = true;
+      // Their game ended. Each email registers once, so another game needs another email.
+      document.querySelector('#registerView h2').textContent = person.wonPrize ? '¡Ya ganaste tu premio!' : '¿Juegas otra vez?';
+      document.querySelector('#registerView > p').textContent = person.wonPrize
+        ? 'Quien gana un premio ya no vuelve a jugar. ¡Felicidades y gracias por participar!'
+        : 'Cada correo se registra una sola vez. Para volver a jugar, regístrate con otro correo.';
+      if (person.wonPrize) submit.disabled = true;
     }
   } catch {}
 }

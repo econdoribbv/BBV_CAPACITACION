@@ -28,6 +28,21 @@ export function toast(message, type = '') {
   window.__toastTimer = setTimeout(() => element.classList.remove('show'), 3200);
 }
 
+export function confetti() {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches || document.body.classList.contains('motion-paused')) return;
+  const colors = ['#36BC87', '#654388', '#F7941E', '#59C8E1', '#EF99C1'];
+  for (let index = 0; index < 70; index += 1) {
+    const piece = document.createElement('i');
+    piece.className = 'confetti';
+    piece.style.left = `${Math.random() * 100}vw`;
+    piece.style.background = colors[index % colors.length];
+    piece.style.animationDelay = `${Math.random() * .7}s`;
+    piece.style.setProperty('--drift', `${(Math.random() - .5) * 250}px`);
+    document.body.appendChild(piece);
+    setTimeout(() => piece.remove(), 3800);
+  }
+}
+
 export function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]);
 }

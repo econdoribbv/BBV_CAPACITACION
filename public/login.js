@@ -1,4 +1,4 @@
-import { api, toast } from './common.js?v=20261105';
+import { api, toast } from './common.js?v=20261112';
 
 document.querySelector('#loginForm').addEventListener('submit', async (event) => {
   event.preventDefault();

@@ -1,4 +1,4 @@
-import { api, toast, escapeHtml, formatDate, downloadReport } from './common.js?v=20261110';
+import { api, toast, escapeHtml, formatDate, downloadReport } from './common.js?v=20261112';
 
 let state;
 let localQuestions = [];
@@ -21,7 +21,7 @@ function showSection(name) {
 
 function attendeeRows(attendees, columns = 8) {
   if (!attendees.length) return `<tr><td colspan="${columns}" class="empty">Aún no hay participantes registrados.</td></tr>`;
-  return attendees.map((person) => `<tr><td><strong>${escapeHtml(person.name)}</strong></td><td>${escapeHtml(person.email)}</td><td>${escapeHtml(person.gender)}</td><td>${escapeHtml(person.ageRange)}</td>${columns > 6 ? `<td>${person.roundNumber ? `N° ${person.roundNumber}` : 'En espera'}</td><td>${person.score}</td>` : ''}<td>${escapeHtml(person.prizeName || '—')}</td><td>${formatDate(person.createdAt)}</td></tr>`).join('');
+  return attendees.map((person) => `<tr><td><strong>${escapeHtml(person.name)}</strong></td><td>${escapeHtml(person.email)}</td><td>${escapeHtml(person.gender)}</td><td>${escapeHtml(person.ageRange)}</td>${columns > 6 ? `<td>${person.plays}</td><td>${person.bestScore}</td>` : ''}<td>${escapeHtml(person.prizeName || '—')}</td><td>${formatDate(person.createdAt)}</td></tr>`).join('');
 }
 
 function leaderList(leaders, limit = 20) {
@@ -161,7 +161,7 @@ function renderFilteredAttendees() {
 document.querySelector('#participantSearch').addEventListener('input', renderFilteredAttendees);
 
 for (const [id, endpoint, prefix, extension, type] of [
-  ['exportCsv', '/api/admin/export.csv', 'participantes', 'csv', 'text/csv'],
+  ['exportExcel', '/api/admin/export.xlsx', 'participantes', 'xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
   ['exportBackup', '/api/admin/backup.json', 'respaldo', 'json', 'application/json']
 ]) {
   document.getElementById(id).addEventListener('click', async (event) => {

@@ -1,5 +1,5 @@
-import { api, toast, escapeHtml } from './common.js?v=20261110';
-import { MaxWheelAnimator } from './max-wheel.js?v=20261105-grip';
+import { api, toast, escapeHtml, confetti } from './common.js?v=20261112';
+import { MaxWheelAnimator } from './max-wheel.js?v=20261112';
 
 const canvas = document.querySelector('#wheelCanvas');
 const ctx = canvas.getContext('2d');
@@ -144,21 +144,6 @@ function animateToPrize(prizeId) {
     }
     requestAnimationFrame(frame);
   });
-}
-
-function confetti() {
-  if (reduceMotion()) return;
-  const colors = ['#36BC87', '#654388', '#F7941E', '#59C8E1', '#EF99C1'];
-  for (let index = 0; index < 70; index += 1) {
-    const piece = document.createElement('i');
-    piece.className = 'confetti';
-    piece.style.left = `${Math.random() * 100}vw`;
-    piece.style.background = colors[index % colors.length];
-    piece.style.animationDelay = `${Math.random() * .7}s`;
-    piece.style.setProperty('--drift', `${(Math.random() - .5) * 250}px`);
-    document.body.appendChild(piece);
-    setTimeout(() => piece.remove(), 3800);
-  }
 }
 
 async function spin() {

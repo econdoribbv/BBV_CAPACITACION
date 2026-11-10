@@ -1,4 +1,4 @@
-import { api, toast, escapeHtml } from './common.js?v=20261110';
+import { api, toast, escapeHtml } from './common.js?v=20261112';
 
 const card = document.querySelector('#gameCard');
 let lastQuestion = null;
@@ -63,9 +63,8 @@ function renderResults(game) {
 
 function renderFinished(game, attendee) {
   clearInterval(timerId);
-  const again = attendee.playsLeft > 0
-    ? `<a class="btn btn-green" style="margin-top:18px" href="/?otra=1">Jugar otra vez (te queda${attendee.playsLeft === 1 ? '' : 'n'} ${attendee.playsLeft})</a>`
-    : '<p style="margin-top:14px">Ya usaste tus 3 participaciones. ¡Gracias por jugar!</p>';
+  // Each email registers once: playing again needs a new registration with another email.
+  const again = attendee.wonPrize ? '' : '<p style="margin-top:14px">¿Quieres volver a jugar? Regístrate con otro correo.</p><a class="btn btn-green" style="margin-top:10px" href="/?otra=1">Registrarme con otro correo</a>';
   const winner = game.isWinner && !attendee.prizeName ? '<p><strong>¡Estás entre los mejores puntajes! Atento a la ruleta de premios.</strong></p>' : '';
   card.innerHTML = `<div class="waiting"><div class="success-icon">★</div><span class="room-code">Desafío finalizado</span><h2>¡Gracias por participar!</h2><p>Terminaste con <strong>${game.score} puntos</strong>.</p>${winner}${again}</div>`;
 }

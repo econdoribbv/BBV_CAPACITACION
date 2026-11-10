@@ -1,11 +1,37 @@
-// Animate the original MAX artwork. The hand is attached to a point on the rim
-// during the pull; the wheel and hand share the same angle on every frame.
+// Animate the original MAX artwork as a cut-out puppet. The raised arm is rebuilt
+// from its own joints (shoulder, elbow, wrist) so the real hand of the artwork holds
+// a point on the rim; the wheel and the hand share the same angle on every frame.
 const mix = (a, b, t) => a + (b - a) * t;
 const smooth = (t) => t * t * (3 - 2 * t);
 const point = (a, b, t) => ({ x: mix(a.x, b.x, t), y: mix(a.y, b.y, t) });
+const distance = (a, b) => Math.hypot(b.x - a.x, b.y - a.y);
 const palm = [[196,246],[205,236],[219,229],[235,231],[237,247],[214,257],[198,255]];
-function polygon(ctx, points) {
-  ctx.beginPath(); points.forEach(([x,y], i) => i ? ctx.lineTo(x,y) : ctx.moveTo(x,y)); ctx.closePath();
+// Measured on the artwork (frame 30, 500 x 500, before mirroring).
+const ARM = {
+  rootTop: { x: 168, y: 135 }, rootBottom: { x: 166, y: 184 },
+  shoulder: { x: 164, y: 160 }, elbow: { x: 94, y: 178 }, wrist: { x: 71, y: 107.5 }, grip: { x: 70, y: 88 },
+  elbowRadius: 15, wristRadius: 11.7, sleeve: '#1a2d47',
+  cut: [[0,0],[176,0],[176,118],[165,135],[163,184],[163,200],[0,200]],
+  hand: [[44,58],[90,58],[90,98],[84,104],[62,114],[57,110],[44,95]]
+};
+const UPPER = distance(ARM.shoulder, ARM.elbow);
+const FORE = distance(ARM.elbow, ARM.grip);
+const FORE_ANGLE = Math.atan2(ARM.grip.y - ARM.elbow.y, ARM.grip.x - ARM.elbow.x);
+function trace(ctx, points) {
+  points.forEach(([x,y], i) => i ? ctx.lineTo(x,y) : ctx.moveTo(x,y)); ctx.closePath();
+}
+function polygon(ctx, points) { ctx.beginPath(); trace(ctx, points); }
+// Two-bone arm: place the elbow so the hand reaches the target without stretching.
+function solveArm(target) {
+  const origin = ARM.shoulder, raw = distance(origin, target) || 1;
+  const reach = Math.min(UPPER + FORE - 1, Math.max(Math.abs(UPPER - FORE) + 2, raw));
+  const ux = (target.x - origin.x) / raw, uy = (target.y - origin.y) / raw;
+  const along = (UPPER * UPPER - FORE * FORE + reach * reach) / (2 * reach);
+  const off = Math.sqrt(Math.max(0, UPPER * UPPER - along * along));
+  const base = { x: origin.x + ux * along, y: origin.y + uy * along };
+  const one = { x: base.x - uy * off, y: base.y + ux * off }, other = { x: base.x + uy * off, y: base.y - ux * off };
+  // The elbow hangs below the arm, as it does in the artwork.
+  return { elbow: one.y >= other.y ? one : other, grip: { x: origin.x + ux * reach, y: origin.y + uy * reach } };
 }
 async function artwork() {
   const image = new Image(); image.src = '/mascots/max.webp'; await image.decode();
@@ -41,43 +67,64 @@ export class MaxWheelAnimator {
     this.radius = w.width / 2 + 9;
     this.size = Math.min(290, w.width * .72);
     this.scale = this.size / 500;
-    const contact = this.rim(145);
-    this.body = { x: contact.x - 45 - 316 * this.scale, y: Math.min(contact.y - 20 - 164 * this.scale, this.height - this.size) };
-    this.body.x = Math.max(-100 * this.scale, this.body.x);
-    this.rest = { x: this.body.x - 15, y: this.body.y + 8 };
+    const s = this.scale, reach = (UPPER + FORE) * s;
+    // MAX stands beside the wheel with the hand a little above and ahead of the shoulder.
+    // On narrow screens he grips lower on the rim, where there is room to stand.
+    const minX = 6 - 165 * s;
+    const stand = (contact) => ({ x: contact.x - reach * .5 - (500 - ARM.shoulder.x) * s, y: contact.y + reach * .3 - ARM.shoulder.y * s });
+    let angle = 145;
+    while (angle > 100 && stand(this.rim(angle)).x < minX) angle -= 5;
+    const start = this.rim(angle), end = this.rim(angle - 20);
+    const body = stand(start);
+    body.x = Math.max(minX, body.x); body.y = Math.min(this.height - this.size, body.y);
+    let shoulder = this.place(body, ARM.shoulder);
+    const gap = distance(shoulder, start);
+    if (gap > reach * .92) {
+      const step = 1 - reach * .92 / gap;
+      body.x += (start.x - shoulder.x) * step; body.y += (start.y - shoulder.y) * step;
+      shoulder = this.place(body, ARM.shoulder);
+    }
+    // While pulling, the body follows the hand just enough to keep the arm from stretching.
+    let follow = .3;
+    const pulled = () => ({ x: shoulder.x + (end.x - start.x) * follow, y: shoulder.y + (end.y - start.y) * follow });
+    while (follow < 1 && distance(pulled(), end) > reach * .94) follow += .05;
+    this.angle = angle; this.follow = follow; this.body = body;
+    this.rest = { x: body.x - 15, y: body.y + 8 };
   }
   rim(degrees) {
     const radians = degrees * Math.PI / 180;
     return { x: this.center.x + Math.cos(radians) * this.radius, y: this.center.y + Math.sin(radians) * this.radius };
   }
-  shoulder(body) { return { x: body.x + 316 * this.scale, y: body.y + 164 * this.scale }; }
-  restHand(body) { const s = this.shoulder(body); return { x: s.x + 14, y: s.y + this.size * .34 }; }
+  // Artwork coordinates to the screen; MAX is mirrored to face the wheel.
+  place(body, spot) { return { x: body.x + (500 - spot.x) * this.scale, y: body.y + spot.y * this.scale }; }
+  restHand(body) { return this.place(body, ARM.grip); }
   draw(body, hand, gripping = false) {
     const ctx = this.ctx, s = this.scale;
     ctx.clearRect(0, 0, this.width, this.height);
-    // Keep MAX's face, clothes and body pixels; animate only the reaching arm.
     ctx.save(); ctx.translate(body.x + this.size, body.y); ctx.scale(-s, s);
-    ctx.beginPath(); ctx.rect(0,0,500,500); ctx.rect(0,0,182,220); ctx.clip('evenodd');
+    // Keep MAX's face, clothes and body pixels; only the reaching arm is rebuilt.
+    ctx.save(); ctx.beginPath(); ctx.rect(0,0,500,500); trace(ctx, ARM.cut); ctx.clip('evenodd');
     ctx.drawImage(this.image,0,0,500,500); ctx.restore();
-    const shoulder = this.shoulder(body);
-    const dx = hand.x-shoulder.x, dy = hand.y-shoulder.y, distance = Math.hypot(dx,dy) || 1;
-    const length = Math.max(this.size * .255, distance / 2 + 2);
-    const bend = Math.sqrt(Math.max(0, length * length - distance * distance / 4));
-    const bendSide = dx >= 0 ? 1 : -1;
-    const elbow = { x: (shoulder.x+hand.x)/2 - dy/distance*bend*bendSide, y: (shoulder.y+hand.y)/2 + dx/distance*bend*bendSide };
-    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(shoulder.x,shoulder.y); ctx.lineTo(elbow.x,elbow.y); ctx.lineTo(hand.x,hand.y);
-    ctx.strokeStyle = '#1b304b'; ctx.lineWidth = this.size * .087; ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(shoulder.x+2,shoulder.y-3); ctx.lineTo(elbow.x+2,elbow.y-3); ctx.lineTo(hand.x,hand.y);
-    ctx.strokeStyle = '#28415c'; ctx.lineWidth = 2; ctx.stroke();
-    const wrist = point(elbow,hand,.88);
-    ctx.beginPath(); ctx.moveTo(wrist.x,wrist.y); ctx.lineTo(hand.x,hand.y); ctx.strokeStyle = '#f4f3e9'; ctx.lineWidth = this.size*.075; ctx.stroke();
-    // The original brown hand is composited over the rim, with fingers in front.
-    ctx.save(); ctx.translate(hand.x,hand.y);
-    ctx.rotate(Math.atan2(this.center.y-hand.y,this.center.x-hand.x)-Math.PI);
-    ctx.scale(s*1.25,s*1.25); ctx.translate(-216,-244); polygon(ctx,palm); ctx.clip(); ctx.drawImage(this.image,0,0,500,500); ctx.restore();
+    const { elbow, grip } = solveArm({ x: 500 - (hand.x - body.x) / s, y: (hand.y - body.y) / s });
+    const turn = Math.atan2(elbow.y - ARM.shoulder.y, elbow.x - ARM.shoulder.x);
+    const nx = -Math.sin(turn) * ARM.elbowRadius, ny = Math.cos(turn) * ARM.elbowRadius;
+    ctx.fillStyle = ARM.sleeve;
+    // Upper sleeve: stays attached to the jacket and tapers to the elbow.
+    polygon(ctx, [[ARM.rootTop.x,ARM.rootTop.y],[elbow.x+nx,elbow.y+ny],[elbow.x-nx,elbow.y-ny],[ARM.rootBottom.x,ARM.rootBottom.y]]); ctx.fill();
+    ctx.beginPath(); ctx.arc(elbow.x, elbow.y, ARM.elbowRadius, 0, Math.PI * 2); ctx.fill();
+    // Forearm, cuff and the original hand turn together around the elbow.
+    ctx.translate(elbow.x, elbow.y); ctx.rotate(Math.atan2(grip.y - elbow.y, grip.x - elbow.x) - FORE_ANGLE); ctx.translate(-ARM.elbow.x, -ARM.elbow.y);
+    const length = distance(ARM.elbow, ARM.wrist);
+    const mx = (ARM.elbow.y - ARM.wrist.y) / length, my = (ARM.wrist.x - ARM.elbow.x) / length;
+    polygon(ctx, [
+      [ARM.elbow.x + mx * ARM.elbowRadius, ARM.elbow.y + my * ARM.elbowRadius], [ARM.wrist.x + mx * ARM.wristRadius, ARM.wrist.y + my * ARM.wristRadius],
+      [ARM.wrist.x - mx * ARM.wristRadius, ARM.wrist.y - my * ARM.wristRadius], [ARM.elbow.x - mx * ARM.elbowRadius, ARM.elbow.y - my * ARM.elbowRadius]
+    ]); ctx.fill();
+    polygon(ctx, ARM.hand); ctx.clip(); ctx.drawImage(this.image,0,0,500,500);
+    ctx.restore();
+    const held = this.place(body, grip);
     this.layer.dataset.gripping = String(gripping);
-    this.layer.dataset.handX = hand.x.toFixed(2); this.layer.dataset.handY = hand.y.toFixed(2);
+    this.layer.dataset.handX = held.x.toFixed(2); this.layer.dataset.handY = held.y.toFixed(2);
     this.layer.dataset.rimX = this.center.x.toFixed(2); this.layer.dataset.rimY = this.center.y.toFixed(2);
     this.layer.dataset.radius = this.radius.toFixed(2);
   }
@@ -88,24 +135,31 @@ export class MaxWheelAnimator {
       requestAnimationFrame(tick);
     });
   }
+  // Hand and body while the rim is pulled; `pull` goes from 0 to 1.
+  pulling(pull) {
+    const start = this.rim(this.angle), end = this.rim(this.angle - 20);
+    return {
+      hand: this.rim(this.angle - 20 * pull),
+      body: { x: this.body.x + (end.x - start.x) * pull * this.follow, y: this.body.y + (end.y - start.y) * pull * this.follow }
+    };
+  }
   async gripAndPush(setRotation, initialRotation) {
     await this.ready; this.measure(); this.layer.hidden = false; this.rig.classList.add('max-acting');
-    const start = this.rim(145), end = this.rim(125);
+    const start = this.rim(this.angle);
     const startingHand = this.restHand(this.rest);
     await this.timeline(700, (t) => this.draw(point(this.rest,this.body,smooth(t)),point(startingHand,start,smooth(t))));
     this.rig.classList.add('is-gripping');
     await this.timeline(240, () => this.draw(this.body,start,true));
     await this.timeline(850, (t) => {
       const pull = t*t;
-      const hand = this.rim(145-20*pull);
-      const body = { x:this.body.x+(end.x-start.x)*pull*.3, y:this.body.y+(end.y-start.y)*pull*.15 };
+      const { hand, body } = this.pulling(pull);
       setRotation(initialRotation-20*pull);
       this.draw(body,hand,true); this.releaseBody = body; this.releaseHand = hand;
     });
     this.rig.classList.remove('is-gripping');
   }
   async release() {
-    const body = this.releaseBody || this.body, hand = this.releaseHand || this.rim(125);
+    const body = this.releaseBody || this.body, hand = this.releaseHand || this.rim(this.angle - 20);
     await this.timeline(650,(t)=>this.draw(point(body,this.rest,smooth(t)),point(hand,this.restHand(this.rest),smooth(t))));
     this.reset();
   }
