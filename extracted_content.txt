@@ -1,0 +1,362 @@
+﻿CAPACITACIÓN
+Elaboración de RequerimientosFuncionales para Desarrollos
+Cómo traducir una necesidad de negocio en una solución que el equipo de desarrollo pueda construir y validar
+IDEA CLAVE
+El proveedor conoce programación y tecnología. El equipo funcional conoce el negocio. Si las reglas del negocio, excepciones, datos y criterios esperados no están escritos, el desarrollador no tiene una base objetiva para incorporarlos. Una omisión en el requerimiento suele convertirse en una omisión en el sistema.
+Dirigido a: equipos funcionales responsables de solicitar, definir, revisar y aceptar desarrollos.
+Enfoque: lenguaje de negocio, ejemplos prácticos y criterios verificables.
+Ruta de la capacitación
+El material está diseñado para utilizarse como documento de apoyo y como guía para una presentación. Cada sección puede convertirse directamente en una o más diapositivas.
+Módulo
+Contenido
+1.
+Qué es un requerimiento y por qué importa
+2.
+Roles: negocio vs. proveedor de desarrollo
+3.
+De la necesidad al requerimiento
+4.
+Estructura mínima de un buen requerimiento
+5.
+Reglas de negocio, datos y validaciones
+6.
+Flujos, escenarios y excepciones
+7.
+Criterios de aceptación y pruebas
+8.
+Requerimientos no funcionales
+9.
+Errores frecuentes y cómo evitarlos
+10.
+Checklist y plantilla práctica
+1. ¿Qué es un requerimiento?
+Un requerimiento es una descripción clara, completa y verificable de una necesidad que debe resolver una solución. Desde la perspectiva funcional, no se trata de explicar cómo programar, sino de explicar qué necesita el negocio, bajo qué reglas debe funcionar y cómo sabremos que el resultado es correcto.
+DEFINICIÓN PRÁCTICA
+Un buen requerimiento debe permitir que una persona que no conoce el proceso pueda entender qué debe ocurrir, con qué información, bajo qué condiciones, qué excepciones existen y cuál es el resultado esperado.
+El problema de los supuestos
+En el negocio muchas reglas se consideran “obvias” porque el equipo las aplica todos los días. Para un proveedor externo, esas reglas no son obvias. Si no están documentadas, existen tres posibilidades: el proveedor pregunta, interpreta o simplemente no las implementa. Las dos últimas generan retrabajo y riesgo.
+Ejemplo 1 - Una solicitud aparentemente simple
+Requerimiento débil / ambiguo
+Requerimiento mejor formulado
+El sistema debe permitir registrar una operación.
+El sistema debe permitir registrar una operación indicando tipo de operación, fecha, contraparte, instrumento, monto, moneda y usuario responsable. Antes de guardar, debe validar que los campos obligatorios estén completos y que el monto sea mayor a cero. Al guardar correctamente, debe asignar un identificador único y mostrar confirmación.
+Por qué importa: La primera versión expresa la intención, pero no define datos, reglas, validaciones ni resultado. El desarrollador podría entregar una pantalla funcional que no sirva para el proceso real.
+2. Roles: quién sabe qué
+Equipo funcional / negocio
+Proveedor de desarrollo
+Responsabilidad compartida
+Conoce procesos, normativa, reglas, excepciones, datos y necesidades del usuario.
+Conoce arquitectura, programación, bases de datos, integración, seguridad técnica y construcción de software.
+Aclarar dudas, revisar impactos, acordar criterios de aceptación y validar el resultado.
+Define qué debe lograr la solución.
+Propone cómo implementar técnicamente la solución.
+Mantener trazabilidad entre necesidad, requerimiento, desarrollo y pruebas.
+Debe identificar casos normales y excepcionales.
+Debe alertar sobre restricciones técnicas o inconsistencias.
+Gestionar cambios de alcance de forma explícita.
+MENSAJE PARA LA CAPACITACIÓN
+No es responsabilidad del proveedor descubrir las reglas del negocio por ensayo y error. Tampoco es responsabilidad del equipo funcional diseñar la solución técnica. El éxito aparece cuando el negocio especifica con precisión el “qué” y el proveedor diseña el “cómo”.
+3. De la necesidad al requerimiento
+Un error frecuente es saltar directamente desde una necesidad general a una solución concreta. Conviene separar cuatro niveles:
+Nivel
+Pregunta que responde
+Ejemplo
+Necesidad
+Problema u oportunidad del negocio.
+“Necesitamos reducir errores al registrar operaciones.”
+Objetivo
+Resultado que se quiere obtener.
+“Validar automáticamente la información antes de confirmar el registro.”
+Requerimiento funcional
+Comportamiento que debe tener el sistema.
+“El sistema debe impedir guardar una operación si el monto es menor o igual a cero.”
+Criterio de aceptación
+Condición observable para verificarlo.
+“Dado un monto de 0, al presionar Guardar, la operación no se registra y se muestra el mensaje ‘El monto debe ser mayor a cero’.”
+TIP
+Antes de escribir una pantalla o un campo, pregunte: ¿qué problema de negocio estoy resolviendo? Esto evita especificar funcionalidades que no aportan al objetivo.
+4. Estructura mínima de un buen requerimiento
+1. Identificación: Código, nombre, versión, fecha, responsable y prioridad.
+2. Objetivo: Qué problema resuelve y para qué se necesita.
+3. Alcance: Qué incluye y, cuando sea relevante, qué no incluye.
+4. Actores: Quién inicia, consulta, aprueba, modifica o recibe el resultado.
+5. Precondiciones: Qué debe existir o cumplirse antes de ejecutar el proceso.
+6. Flujo principal: Secuencia normal de pasos desde inicio hasta fin.
+7. Reglas de negocio: Condiciones que determinan qué se permite, calcula, rechaza o deriva.
+8. Datos: Campos, fuentes, formatos, obligatoriedad y significado.
+9. Validaciones y mensajes: Qué se valida y qué debe ver el usuario cuando algo no cumple.
+10. Excepciones: Qué ocurre cuando el caso no sigue el flujo normal.
+11. Interfaces / integraciones: Qué información se envía o recibe de otros sistemas.
+12. Criterios de aceptación: Cómo se demostrará que el requerimiento fue cumplido.
+REGLA DE ORO
+Si una condición puede cambiar el resultado del proceso, debe quedar escrita. Si un dato es necesario para decidir, calcular, aprobar, rechazar o reportar, debe quedar definido.
+5. Reglas de negocio: el conocimiento que el proveedor no puede adivinar
+Las reglas de negocio son condiciones que reflejan políticas, normativa, decisiones operativas o lógica propia de la organización. Son uno de los componentes más delicados de un requerimiento porque suelen vivir en la experiencia de las personas y no en documentos formales.
+Tipos comunes de reglas
+Validación: “No se puede registrar una fecha futura”.
+Cálculo: “La comisión se calcula sobre el monto efectivo y se redondea a dos decimales”.
+Autorización: “Montos superiores a X requieren aprobación de un segundo perfil”.
+Clasificación: “Si el plazo es menor o igual a 360 días, clasificar como corto plazo”.
+Derivación: “Si la operación es rechazada, retornar al usuario que la registró”.
+Vigencia: “La regla se aplica únicamente a operaciones registradas desde una fecha determinada”.
+Ejemplo 2 - Regla de cálculo
+Requerimiento débil / ambiguo
+Requerimiento mejor formulado
+Calcular la comisión correspondiente.
+Comisión = monto de la operación × porcentaje vigente. El porcentaje se obtiene de la tabla de tarifas según tipo de operación y segmento. El resultado se redondea a dos decimales usando redondeo matemático. Si no existe una tarifa vigente para la fecha de la operación, el sistema debe impedir continuar y mostrar un mensaje de configuración pendiente.
+Por qué importa: “Calcular la comisión” no indica fórmula, fuente, vigencia, redondeo ni qué ocurre si falta una tarifa.
+PREGUNTAS QUE DESCUBREN REGLAS OCULTAS
+¿Siempre aplica? ¿Qué cambia según tipo, monto, fecha, moneda, estado o perfil? ¿Hay límites? ¿Quién autoriza? ¿Qué pasa si falta información? ¿Cómo se redondea? ¿Desde cuándo está vigente?
+6. Datos y campos: no basta con decir “registrar información”
+Cada dato relevante debe tener un significado inequívoco. Cuando se solicitan campos sin definición, aparecen discrepancias en formatos, obligatoriedad, fuentes y uso posterior.
+Aspecto a definir
+Pregunta
+Ejemplo
+Nombre y significado
+¿Qué representa exactamente?
+Fecha de liquidación: fecha prevista para completar la liquidación.
+Tipo / formato
+¿Texto, número, fecha, porcentaje?
+Monto: numérico, hasta 2 decimales.
+Obligatoriedad
+¿Siempre, nunca o condicional?
+Contraparte obligatoria cuando el tipo sea “Bilateral”.
+Fuente
+¿Lo escribe el usuario o viene de otro sistema?
+Código de instrumento obtenido del maestro de instrumentos.
+Valores permitidos
+¿Hay catálogo o rango?
+Moneda: BOB, USD, UFV u otro catálogo vigente.
+Editabilidad
+¿Quién puede modificar y hasta qué estado?
+Editable mientras la operación esté en estado Borrador.
+7. Flujos, escenarios y excepciones
+El flujo principal describe lo que ocurre cuando todo sale bien. Un requerimiento completo también debe describir las bifurcaciones y las excepciones. En sistemas reales, buena parte de los errores aparece precisamente en escenarios poco frecuentes.
+Forma sencilla de documentar un flujo
+Quién inicia el proceso.
+Qué información ingresa o selecciona.
+Qué valida el sistema.
+Qué decisiones pueden cambiar el camino.
+Qué resultado se genera.
+Qué estados atraviesa la operación.
+Qué acciones se permiten en cada estado.
+Qué ocurre si una integración no responde o un dato es inválido.
+Ejemplo 3 - Flujo con excepción
+Requerimiento débil / ambiguo
+Requerimiento mejor formulado
+El usuario envía la solicitud para aprobación.
+1) Usuario registra la solicitud en Borrador. 2) Selecciona Enviar. 3) El sistema valida campos obligatorios. 4) Si cumple, cambia a Pendiente de aprobación y notifica al aprobador. 5) El aprobador puede Aprobar o Rechazar. 6) Si aprueba, cambia a Aprobada y se bloquea la edición. 7) Si rechaza, cambia a Observada, registra el motivo obligatorio y vuelve al usuario originador para corrección.
+Por qué importa: La palabra “aprobación” puede esconder varios estados, actores, permisos y caminos alternos.
+TIP
+Dibujar un flujo simple con cajas y decisiones antes de redactar ayuda a detectar caminos olvidados. Luego, cada bifurcación del dibujo debe aparecer en el texto del requerimiento.
+8. Validaciones, mensajes y comportamiento ante errores
+Una validación incompleta genera una mala experiencia de usuario y puede permitir datos inconsistentes. No basta con indicar “validar los datos”; se debe precisar qué condición se controla y qué ocurre si no se cumple.
+Ejemplo 4 - Validación
+Requerimiento débil / ambiguo
+Requerimiento mejor formulado
+Validar que la fecha sea correcta.
+La fecha de vencimiento debe ser posterior a la fecha de emisión. Si la fecha de vencimiento es igual o anterior, impedir guardar y mostrar: “La fecha de vencimiento debe ser posterior a la fecha de emisión”.
+Por qué importa: Define condición, acción del sistema y mensaje visible. Eso hace la regla verificable.
+Puntos a no olvidar
+¿La validación bloquea o solo advierte?
+¿En qué momento se ejecuta: al ingresar, al guardar, al aprobar o al procesar?
+¿Qué mensaje debe mostrarse?
+¿El usuario puede corregir y continuar?
+¿Debe quedar registro del error?
+¿Qué pasa si un servicio externo no está disponible?
+9. Criterios de aceptación: convertir expectativas en pruebas
+Los criterios de aceptación son condiciones objetivas que permiten confirmar si un desarrollo cumple el requerimiento. Evitan discusiones basadas en interpretaciones como “yo esperaba que funcionara de otra forma”.
+FORMATO ÚTIL
+DADO que existe una condición inicial / CUANDO el usuario realiza una acción / ENTONCES el sistema produce un resultado observable.
+Caso exitoso: Dado un usuario autorizado y una operación con todos los datos válidos, cuando selecciona Guardar, entonces el sistema registra la operación, asigna un identificador único y muestra confirmación.
+Caso de validación: Dado un monto igual a cero, cuando el usuario intenta guardar, entonces el sistema no registra la operación y muestra “El monto debe ser mayor a cero”.
+Caso de permisos: Dado un usuario con perfil de consulta, cuando abre una operación aprobada, entonces puede visualizarla pero no modificar campos ni ejecutar acciones de edición.
+Caso de excepción: Dado que el servicio externo no responde, cuando el sistema intenta consultar la información, entonces informa la indisponibilidad, no duplica transacciones y permite reintentar según la regla definida.
+10. Requerimientos no funcionales: cómo debe comportarse la solución
+Aunque el equipo funcional no necesite diseñar la arquitectura, sí debe expresar necesidades de calidad cuando tienen impacto en el negocio. Estos requisitos describen atributos del servicio y no una función específica.
+Tema
+Pregunta de negocio
+Ejemplo de requerimiento
+Rendimiento
+¿Cuánto puede esperar el usuario?
+Las búsquedas habituales deben responder en un tiempo objetivo acordado bajo la carga esperada.
+Disponibilidad
+¿En qué horarios debe estar disponible?
+El servicio debe estar disponible durante el horario operativo definido, salvo ventanas autorizadas.
+Seguridad / acceso
+¿Quién puede ver o modificar?
+Solo perfiles autorizados pueden aprobar; toda aprobación debe registrar usuario, fecha y hora.
+Auditoría
+¿Qué acciones deben quedar registradas?
+Conservar trazabilidad de altas, modificaciones, aprobaciones y rechazos.
+Volumen
+¿Cuántos registros se esperan?
+El diseño debe considerar el volumen actual y el crecimiento esperado informado por negocio.
+Continuidad
+¿Qué pasa ante falla?
+Definir comportamiento frente a interrupciones, reintentos y recuperación sin duplicar operaciones.
+IMPORTANTE
+Cuando una cifra técnica no sea conocida por el negocio (por ejemplo, milisegundos o capacidad de infraestructura), el equipo funcional debe expresar la necesidad y el impacto. El proveedor puede proponer la métrica técnica, pero ésta debe quedar acordada.
+11. Palabras peligrosas: parecen claras, pero no lo son
+Expresión ambigua
+Preguntas para aclararla
+“Automáticamente”
+¿En qué momento? ¿Qué lo dispara? ¿Puede fallar? ¿Se puede reintentar?
+“Rápido”
+¿Qué tiempo de respuesta es aceptable para el proceso?
+“Según corresponda”
+¿Cuáles son exactamente las condiciones y alternativas?
+“Validar”
+¿Qué regla se valida y qué ocurre si no se cumple?
+“Notificar”
+¿A quién, por qué canal, con qué contenido y en qué momento?
+“Los usuarios”
+¿Qué perfiles específicos? ¿Todos tienen los mismos permisos?
+“Información necesaria”
+¿Qué campos son exactamente obligatorios?
+“Similar al sistema actual”
+¿Qué comportamiento debe conservarse y cuál debe cambiar?
+12. Errores frecuentes y su impacto
+Error
+Riesgo
+Prevención
+Describir solo la pantalla
+Se omiten reglas, estados y comportamiento.
+Documentar proceso + regla + dato + respuesta del sistema.
+Suponer que el proveedor “ya sabe”
+Se implementa una interpretación distinta.
+Escribir toda regla que afecte el resultado.
+No documentar excepciones
+Los casos poco frecuentes fallan en producción.
+Preguntar “¿qué pasa si...?” para cada paso crítico.
+Usar ejemplos como si fueran reglas
+El proveedor implementa solo el ejemplo.
+Separar regla general de ejemplos ilustrativos.
+Cambiar el alcance verbalmente
+No existe trazabilidad y aparecen disputas.
+Formalizar cambios y actualizar versión/requerimiento.
+Aceptar por apariencia
+La pantalla se ve bien pero la lógica puede ser incorrecta.
+Validar con criterios de aceptación y casos de prueba.
+No definir datos históricos/migración
+El nuevo módulo funciona solo hacia adelante.
+Definir si se cargan, convierten o consultan datos previos.
+13. Trazabilidad y gestión de cambios
+Un requerimiento no termina cuando se envía al proveedor. Durante análisis y construcción surgirán preguntas y cambios. Es indispensable poder distinguir entre una aclaración y un cambio de alcance.
+Aclaración vs. cambio
+Aclaración: precisa algo que ya estaba dentro de la intención y alcance documentados.
+Cambio: agrega, elimina o modifica comportamiento, reglas, datos, interfaces, usuarios o criterios previamente acordados.
+TIP DE GOBIERNO
+Mantenga una versión aprobada del requerimiento y un registro de decisiones. Toda respuesta relevante dada por correo, reunión o chat debería incorporarse al documento o a un registro formal vinculado.
+14. Técnica de revisión antes de enviar al proveedor
+Realice una “lectura de tercero”: revise el documento como si no conociera el proceso. Cada vez que aparezca una pregunta cuya respuesta solo está en la cabeza del autor, existe información faltante.
+¿Entiendo el objetivo sin conocer el contexto previo?
+¿Sé quién hace cada acción?
+¿Sé qué datos se usan y de dónde vienen?
+¿Puedo identificar todas las reglas que cambian el resultado?
+¿Sé qué ocurre en el caso normal y en los casos de error?
+¿Sé qué puede hacer cada perfil?
+¿Está claro qué queda fuera del alcance?
+¿Puedo convertir cada requerimiento en una prueba objetiva?
+¿Las palabras ambiguas fueron reemplazadas por condiciones concretas?
+¿Un proveedor externo podría construirlo sin inventar una regla de negocio?
+15. Ejemplo completo: de una solicitud débil a un requerimiento útil
+SOLICITUD INICIAL
+“Necesitamos una opción para aprobar operaciones y avisar al usuario cuando estén aprobadas.”
+Versión mejorada
+Objetivo: Incorporar una etapa de aprobación que impida que una operación continúe su procesamiento sin autorización de un usuario con perfil Aprobador.
+Actores: Registrador y Aprobador.
+Precondición: La operación debe estar registrada y haber superado las validaciones funcionales.
+Flujo: El Registrador envía la operación. El sistema cambia el estado de Borrador a Pendiente de aprobación. Un Aprobador consulta pendientes y selecciona Aprobar o Rechazar.
+Regla 1: El mismo usuario que registró la operación no puede aprobarla cuando aplique segregación de funciones.
+Regla 2: Una operación aprobada no puede editarse; cualquier corrección debe seguir el procedimiento definido.
+Rechazo: El Aprobador debe ingresar un motivo. La operación pasa a Observada y vuelve al Registrador.
+Notificación: Al aprobar o rechazar, el sistema notifica al Registrador indicando identificador de la operación, resultado y, si corresponde, motivo.
+Auditoría: Registrar usuario, fecha, hora, estado anterior, estado nuevo y acción.
+Aceptación: Dada una operación Pendiente de aprobación y un usuario Aprobador distinto del Registrador, cuando selecciona Aprobar, entonces la operación pasa a Aprobada, queda bloqueada para edición, registra auditoría y notifica al Registrador.
+16. Checklist de requerimiento funcional
+Utilice esta lista antes de remitir un requerimiento para estimación o desarrollo.
+☐  El objetivo de negocio está claro.
+☐  El alcance y las exclusiones están definidos.
+☐  Los actores y perfiles están identificados.
+☐  Las precondiciones están documentadas.
+☐  El flujo principal está completo.
+☐  Las reglas de negocio están escritas y no dependen de supuestos.
+☐  Los datos, formatos, fuentes y obligatoriedad están definidos.
+☐  Las validaciones indican condición, momento y respuesta.
+☐  Las excepciones y escenarios alternativos están descritos.
+☐  Los estados y transiciones están definidos.
+☐  Los permisos por perfil están claros.
+☐  Las integraciones indican información de entrada/salida y comportamiento ante fallas.
+☐  Los mensajes o notificaciones relevantes están definidos.
+☐  Se consideraron auditoría, trazabilidad y registros.
+☐  Se identificaron necesidades no funcionales relevantes.
+☐  Existen criterios de aceptación positivos y negativos.
+☐  Se revisó el requerimiento con alguien distinto al autor.
+☐  Las dudas abiertas están registradas y tienen responsable.
+17. Plantilla sugerida para nuevos requerimientos
+Sección
+Contenido esperado
+Código / Nombre
+Solicitante / Responsable funcional
+Fecha / Versión
+Prioridad
+Objetivo de negocio
+¿Qué problema resuelve?
+Alcance
+Qué incluye.
+Fuera de alcance
+Qué expresamente no incluye.
+Actores / Perfiles
+Quién usa, aprueba, consulta, administra.
+Precondiciones
+Qué debe cumplirse antes.
+Descripción funcional
+Qué debe hacer la solución.
+Flujo principal
+Pasos numerados.
+Reglas de negocio
+Reglas numeradas, una por condición.
+Datos y campos
+Nombre, significado, tipo, fuente, obligatoriedad.
+Validaciones y mensajes
+Condición + acción del sistema + mensaje.
+Escenarios alternativos / excepciones
+Qué ocurre fuera del caso normal.
+Integraciones
+Sistema origen/destino, datos y fallas.
+Seguridad / permisos / auditoría
+Necesidades de negocio.
+Requerimientos no funcionales
+Disponibilidad, rendimiento, volumen, continuidad, etc.
+Criterios de aceptación
+Casos verificables.
+Dependencias / dudas abiertas
+Temas pendientes, responsable y fecha objetivo.
+18. Ejercicio para la capacitación
+Proponer al grupo la siguiente solicitud y pedir que identifique qué información falta antes de enviarla a un proveedor:
+CASO
+“Queremos que el sistema permita generar un reporte mensual y enviarlo automáticamente a los responsables.”
+Preguntas esperadas del grupo
+¿Qué contiene el reporte?
+¿De qué fuente salen los datos?
+¿Qué período exacto cubre?
+¿Cuándo se genera y qué pasa en días no hábiles?
+¿Quiénes son los responsables y cómo se determina la lista?
+¿En qué formato se genera?
+¿Por qué canal se envía?
+¿Qué pasa si no hay datos?
+¿Qué pasa si falla el envío?
+¿Debe conservarse copia e historial?
+¿Quién puede regenerarlo?
+¿Qué datos son sensibles?
+¿Cuál es el criterio para considerar el proceso exitoso?
+19. Mensajes de cierre
+El requerimiento es un contrato de entendimiento. Su función principal es reducir interpretaciones diferentes entre negocio y desarrollo.
+Lo obvio para el negocio no es obvio para el proveedor. Las reglas implícitas deben convertirse en reglas explícitas.
+Más detalle no significa más texto. Significa precisión: condiciones, datos, excepciones y resultados verificables.
+Un ejemplo ayuda, pero no reemplaza una regla. Primero se escribe la regla general; luego se agregan ejemplos.
+Lo que no se especifica no puede exigirse objetivamente. Las omisiones detectadas tarde generan costo, retraso y frustración.
+Aceptar es probar. Los criterios de aceptación deben permitir demostrar que el resultado cumple el negocio.
+FRASE FINAL
+El proveedor debe convertir requerimientos en software; el equipo funcional debe convertir conocimiento del negocio en requerimientos. La calidad del resultado depende de la calidad de esa traducción.
